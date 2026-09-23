@@ -1,0 +1,31 @@
+{
+  "name": "bandit-island",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Bandit Island — マルチアームド・バンディットを3Dの宝島で直感的に学べるインタラクティブWebアプリ",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test:bandits": "node --experimental-strip-types scripts/verify-bandits.ts"
+  },
+  "dependencies": {
+    "@react-three/drei": "^10.7.8",
+    "@react-three/fiber": "^9.8.0",
+    "next": "^16.3.6",
+    "react": "~19.3.0",
+    "react-dom": "~19.3.0",
+    "three": "^0.186.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^22",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/three": "^0.186.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~5.9.3"
+  },
+  "type": "module"
+}
