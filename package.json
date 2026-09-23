@@ -3,6 +3,25 @@
   "version": "1.0.0",
   "private": true,
   "description": "Bandit Island — マルチアームド・バンディットを3Dの宝島で直感的に学べるインタラクティブWebアプリ",
+  "license": "MIT",
+  "author": "yasut0ra",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yasut0ra/bandit-island.git"
+  },
+  "keywords": [
+    "multi-armed-bandit",
+    "reinforcement-learning",
+    "thompson-sampling",
+    "ucb",
+    "epsilon-greedy",
+    "react-three-fiber",
+    "nextjs"
+  ],
+  "type": "module",
+  "engines": {
+    "node": ">=20.9"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -26,6 +45,5 @@
     "@types/three": "^0.186.0",
     "tailwindcss": "^4.3.3",
     "typescript": "~5.9.3"
-  },
-  "type": "module"
+  }
 }

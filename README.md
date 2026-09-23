@@ -1,6 +1,11 @@
 # 🏝️ Bandit Island
 
+[![CI](https://github.com/yasut0ra/bandit-island/actions/workflows/ci.yml/badge.svg)](https://github.com/yasut0ra/bandit-island/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 **「探索と活用って、こういうことか！」が目で見て分かる、マルチアームド・バンディットの 3D 学習アプリ。**
+
+![Bandit Island のスクリーンショット](docs/screenshot.png)
 
 小さな浮島に 5 つの宝箱があります。それぞれの宝箱には、ロボットには見えない「当たり確率」が隠されています。
 ロボットは毎ターン 1 つの宝箱を選んで開け、当たりならコインや宝石を手に入れます。
@@ -11,11 +16,20 @@
 
 このトレードオフを、霧・足跡・コインの山・グラフで直感的に体験できます。
 
+<details>
+<summary>🌙 夜の島（ダークモード）</summary>
+
+![夜の Bandit Island](docs/screenshot-night.png)
+
+</details>
+
 ## 起動方法
 
-Node.js 20 以上（推奨 22）が必要です。
+Node.js 20.9 以上（推奨 22）が必要です。
 
 ```bash
+git clone https://github.com/yasut0ra/bandit-island.git
+cd bandit-island
 npm install
 npm run dev
 ```
@@ -118,3 +132,7 @@ scripts/verify-bandits.ts アルゴリズムの検証スクリプト
 ```
 
 乱数はシード付き（mulberry32）で状態をリデューサーに保持しているため、シミュレーションは純粋関数として再現可能です。
+
+## ライセンス
+
+[MIT](LICENSE)
