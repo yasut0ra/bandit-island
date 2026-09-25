@@ -7,7 +7,7 @@ import type { EffectLevel } from "./layout";
 
 const GRAVITY = -9.5;
 const BURST_LIFE = 1.5;
-const GEM_COLORS = ["#67e8f9", "#f472b6", "#a78bfa", "#4ade80"];
+const GEM_COLORS = ["#8fd3e8", "#f2a6bf", "#b9aee6", "#9fd8a8"];
 
 interface Particle {
   kind: "coin" | "gem" | "star";
@@ -72,7 +72,7 @@ export function RewardBurst({ position, level, seed }: { position: THREE.Vector3
     <group position={position}>
       <mesh position={[0, 1.6, 0]}>
         <cylinderGeometry args={[0.28, 0.5, 3.2, 16, 1, true]} />
-        <meshBasicMaterial ref={beam} color="#fff3b0" transparent opacity={0.45} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} />
+        <meshBasicMaterial ref={beam} color="#fff1c9" transparent opacity={0.45} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} />
       </mesh>
       {particles.map((p, i) => (
         <mesh

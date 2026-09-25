@@ -58,7 +58,11 @@ export interface PendingTurn {
   reason: string;
 }
 
-export type LogEntry = { kind: "turn"; id: number; event: TurnEvent } | { kind: "note"; id: number; text: string };
+/** A one-off remark (algorithm switch, jump, new island) shown with the robot's latest thought. */
+export interface Notice {
+  id: number;
+  text: string;
+}
 
 export interface BanditState {
   sim: SimulationState;
@@ -68,7 +72,7 @@ export interface BanditState {
   seed: number;
   pending: PendingTurn | null;
   lastEvent: TurnEvent | null;
-  log: LogEntry[];
+  notice: Notice | null;
   nextId: number;
 }
 
@@ -81,12 +85,6 @@ type Action =
   | { type: "setAlgorithm"; algorithm: AlgorithmId }
   | { type: "setEpsilon"; epsilon: number };
 
-const LOG_LIMIT = 40;
-
-function pushLog(log: LogEntry[], ...entries: LogEntry[]): LogEntry[] {
-  return [...entries.reverse(), ...log].slice(0, LOG_LIMIT);
-}
-
 function initialState(probs: readonly number[], seed: number, algorithm: AlgorithmId, epsilon: number): BanditState {
   return {
     sim: createSimulation(probs),
@@ -95,7 +93,7 @@ function initialState(probs: readonly number[], seed: number, algorithm: Algorit
     seed,
     pending: null,
     lastEvent: null,
-    log: [],
+    notice: null,
     nextId: 1,
   };
 }
@@ -115,7 +113,6 @@ function resolvePending(state: BanditState): BanditState {
     seed: rng.state,
     pending: null,
     lastEvent: event,
-    log: pushLog(state.log, { kind: "turn", id: event.id, event }),
   };
 }
 
@@ -169,16 +166,13 @@ function reducer(state: BanditState, action: Action): BanditState {
         decision: last.decision,
         reason: explainDecision(last.decision, CHEST_NAMES),
       };
-      const entries: LogEntry[] = action.note
-        ? [{ kind: "turn", id: event.id, event }, { kind: "note", id: base.nextId + 1, text: action.note }]
-        : [{ kind: "turn", id: event.id, event }];
       return {
         ...base,
         sim,
         seed: rng.state,
         nextId: base.nextId + 2,
         lastEvent: event,
-        log: pushLog(base.log, ...entries),
+        notice: action.note ? { id: base.nextId + 1, text: action.note } : base.notice,
       };
     }
 
@@ -189,7 +183,7 @@ function reducer(state: BanditState, action: Action): BanditState {
       const next = initialState(shuffledProbs(action.seed), action.seed, state.algorithm, state.epsilon);
       return {
         ...next,
-        log: [{ kind: "note", id: 0, text: "新しい島に到着！ 宝箱の当たり確率が入れ替わりました。" }],
+        notice: { id: 0, text: "新しい島に到着。宝箱の当たりやすさが入れ替わりました。" },
       };
     }
 
@@ -197,13 +191,13 @@ function reducer(state: BanditState, action: Action): BanditState {
       if (action.algorithm === state.algorithm) return state;
       const text =
         state.sim.turn > 0
-          ? `アルゴリズムを ${ALGORITHM_INFO[action.algorithm].name} に切り替えました。これまでの観測結果（選択回数・当たり回数）はそのまま引き継ぎます。`
-          : `アルゴリズムを ${ALGORITHM_INFO[action.algorithm].name} に設定しました。`;
+          ? `ここから ${ALGORITHM_INFO[action.algorithm].name} に交代。これまでの記録（開けた回数・当たり回数）は引き継ぎます。`
+          : `今日の探検家は ${ALGORITHM_INFO[action.algorithm].name}。`;
       return {
         ...state,
         algorithm: action.algorithm,
         nextId: state.nextId + 1,
-        log: pushLog(state.log, { kind: "note", id: state.nextId, text }),
+        notice: { id: state.nextId, text },
       };
     }
 
@@ -254,7 +248,7 @@ export function useBanditSimulation() {
     dispatch({
       type: "step",
       count: JUMP_TURNS,
-      note: `⏩ ${JUMP_TURNS}ターンを一気に進めました。`,
+      note: `${JUMP_TURNS}ターン分、一気に進めました。`,
     });
   }, []);
 

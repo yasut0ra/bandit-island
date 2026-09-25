@@ -4,9 +4,10 @@ import { Float, Sparkles, Stars } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useRef } from "react";
 import * as THREE from "three";
+import { INK, Toon } from "./materials";
 
 function Cloud({ position, scale = 1, dark }: { position: [number, number, number]; scale?: number; dark: boolean }) {
-  const color = dark ? "#8b95c9" : "#ffffff";
+  const color = dark ? "#43466a" : "#fffaf0";
   return (
     <group position={position} scale={scale}>
       {[
@@ -18,7 +19,7 @@ function Cloud({ position, scale = 1, dark }: { position: [number, number, numbe
       ].map(([x, y, z, r], i) => (
         <mesh key={i} position={[x, y, z]}>
           <icosahedronGeometry args={[r, 1]} />
-          <meshStandardMaterial color={color} flatShading roughness={1} emissive={color} emissiveIntensity={dark ? 0.05 : 0.18} />
+          <Toon color={color} emissive={color} emissiveIntensity={dark ? 0.05 : 0.18} />
         </mesh>
       ))}
     </group>
@@ -31,15 +32,15 @@ function MiniIsland({ position, scale = 1 }: { position: [number, number, number
       <group position={position} scale={scale}>
         <mesh position={[0, 0, 0]}>
           <cylinderGeometry args={[0.7, 0.62, 0.2, 7]} />
-          <meshStandardMaterial color="#8bd46e" flatShading />
+          <Toon color="#a3cf7d" />
         </mesh>
         <mesh position={[0, -0.55, 0]} rotation={[Math.PI, 0, 0]}>
           <coneGeometry args={[0.62, 0.9, 7]} />
-          <meshStandardMaterial color="#a86f45" flatShading />
+          <Toon color="#a86f45" />
         </mesh>
         <mesh position={[0.15, 0.3, 0]}>
           <icosahedronGeometry args={[0.28, 0]} />
-          <meshStandardMaterial color="#5fbf5a" flatShading />
+          <Toon color="#7fb563" />
         </mesh>
       </group>
     </Float>
@@ -73,7 +74,7 @@ export function SkyEnvironment({ dark }: { dark: boolean }) {
         size={dark ? 4 : 2.5}
         speed={0.35}
         opacity={dark ? 0.9 : 0.6}
-        color={dark ? "#d9f99d" : "#fff7cc"}
+        color={dark ? "#f3e2a6" : "#fffaf0"}
       />
       {dark && <Stars radius={70} depth={30} count={1800} factor={3.5} saturation={0} fade speed={0.6} />}
     </>

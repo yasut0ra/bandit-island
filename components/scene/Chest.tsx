@@ -1,13 +1,16 @@
 "use client";
 
-import { RoundedBox } from "@react-three/drei";
+import { Outlines, RoundedBox } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
+import { INK, Toon } from "./materials";
 import { SceneHtml } from "./SceneHtml";
 import { formatPercent } from "@/lib/island";
 
 const LID_OPEN = -1.95;
+/** Small, fixed tilts so the paper tags look pinned by hand. */
+const LABEL_TILTS = [-4, 2.5, -1.5, 3, -2.5];
 const GOLD = "#f5c542";
 
 export interface ChestProps {
@@ -35,8 +38,8 @@ function UncertaintyMist({ uncertainty }: { uncertainty: number }) {
   const material = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: "#c4b5fd",
-        emissive: "#a78bfa",
+        color: "#c9bfee",
+        emissive: "#9d8fd8",
         emissiveIntensity: 0.35,
         transparent: true,
         opacity: 0.5,
@@ -113,7 +116,7 @@ function CoinPile({ successes }: { successes: number }) {
       {coins.slice(0, count).map((c, i) => (
         <mesh key={i} position={[c.x, c.y, c.z]} rotation={[0, c.rot, 0]} castShadow>
           <cylinderGeometry args={[0.1, 0.1, 0.045, 12]} />
-          <meshStandardMaterial color={GOLD} metalness={0.6} roughness={0.3} emissive="#b45309" emissiveIntensity={0.15} />
+          <Toon color={GOLD} emissive="#b45309" emissiveIntensity={0.15} />
         </mesh>
       ))}
     </group>
@@ -143,7 +146,7 @@ function BestStar() {
   return (
     <mesh ref={ref} position={[0, 1.2, 0]} castShadow>
       <extrudeGeometry args={[shape, { depth: 0.06, bevelEnabled: true, bevelSize: 0.02, bevelThickness: 0.02, bevelSegments: 1 }]} />
-      <meshStandardMaterial color="#fde047" emissive="#facc15" emissiveIntensity={0.7} metalness={0.3} roughness={0.35} />
+      <Toon color="#fde047" emissive="#facc15" emissiveIntensity={0.7} />
     </mesh>
   );
 }
@@ -205,41 +208,43 @@ export function Chest(props: ChestProps) {
       <group ref={body}>
         {/* base */}
         <RoundedBox args={[1, 0.52, 0.7]} radius={0.05} position={[0, 0.26, 0]} castShadow receiveShadow>
-          <meshStandardMaterial color="#9a6035" roughness={0.8} />
+          <Toon color="#9a6035" />
+          <Outlines thickness={0.022} color={INK} />
         </RoundedBox>
         {/* inside (visible when open) */}
         <mesh position={[0, 0.521, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <planeGeometry args={[0.9, 0.6]} />
-          <meshStandardMaterial color="#3b2412" emissive={GOLD} emissiveIntensity={0.25} />
+          <Toon color="#3b2412" emissive={GOLD} emissiveIntensity={0.25} />
         </mesh>
         {/* gold bands */}
         {[-0.34, 0.34].map((x) => (
           <mesh key={x} position={[x, 0.26, 0]} castShadow>
             <boxGeometry args={[0.09, 0.54, 0.72]} />
-            <meshStandardMaterial color={GOLD} metalness={0.5} roughness={0.35} />
+            <Toon color={GOLD} />
           </mesh>
         ))}
         {/* lock */}
         <mesh position={[0, 0.42, 0.36]} castShadow>
           <boxGeometry args={[0.16, 0.18, 0.05]} />
-          <meshStandardMaterial color={GOLD} metalness={0.6} roughness={0.3} />
+          <Toon color={GOLD} />
         </mesh>
 
         {/* lid, hinged at the back edge */}
         <group ref={lid} position={[0, 0.52, -0.35]}>
           <mesh position={[0, 0, 0.35]} rotation={[0, 0, Math.PI / 2]} castShadow>
             <cylinderGeometry args={[0.35, 0.35, 1, 14, 1, false, 0, Math.PI]} />
-            <meshStandardMaterial color={color} roughness={0.55} side={THREE.DoubleSide} flatShading />
+            <Toon color={color} side={THREE.DoubleSide} />
+            <Outlines thickness={0.022} color={INK} />
           </mesh>
           {[-0.34, 0.34].map((x) => (
             <mesh key={x} position={[x, 0, 0.35]} rotation={[0, 0, Math.PI / 2]}>
               <cylinderGeometry args={[0.365, 0.365, 0.09, 14, 1, false, 0, Math.PI]} />
-              <meshStandardMaterial color={GOLD} metalness={0.5} roughness={0.35} side={THREE.DoubleSide} />
+              <Toon color={GOLD} side={THREE.DoubleSide} />
             </mesh>
           ))}
           <mesh position={[0, 0.02, 0.71]}>
             <boxGeometry args={[0.12, 0.12, 0.04]} />
-            <meshStandardMaterial color={GOLD} metalness={0.6} roughness={0.3} />
+            <Toon color={GOLD} />
           </mesh>
         </group>
       </group>
@@ -251,24 +256,24 @@ export function Chest(props: ChestProps) {
       <SceneHtml position={[0, 1.62, 0]} center zIndexRange={[20, 10]} style={{ pointerEvents: "none" }}>
         <div
           className={`chest-label ${isTarget ? "chest-label--target" : ""}`}
-          style={{ "--chest": color } as React.CSSProperties}
+          style={{ "--chest": color, "--tilt": `${LABEL_TILTS[props.index]}deg` } as React.CSSProperties}
         >
-          <div className="flex items-center gap-1 font-bold whitespace-nowrap">
-            <span className="inline-block h-2 w-2 rounded-full" style={{ background: color }} />
+          <div className="font-bold whitespace-nowrap">
             {props.name}
-            {isBest && <span aria-label="推定ベスト">👑</span>}
+            {isBest && <span className="ml-0.5 text-[#c07a1e]">★</span>}
           </div>
-          <div className="whitespace-nowrap text-[10px] opacity-80">
-            {pulls}回 · {estimate === null ? "推定 ？" : `推定 ${formatPercent(estimate)}`}
+          <div className="t-num text-[15px] leading-tight font-semibold whitespace-nowrap">
+            {estimate === null ? "？" : formatPercent(estimate)}
           </div>
-          {lastOpen && turnMs >= 1000 && (
-            <div key={lastOpen.id} className={`float-text ${lastOpen.reward ? "float-text--win" : "float-text--miss"}`}>
-              {lastOpen.reward ? "当たり！ +1" : "ハズレ…"}
+          <div className="text-[9px] whitespace-nowrap text-[#8a7b68]">{pulls}回</div>
+          {props.showTrueProb && (
+            <div className="mt-0.5 border-t border-dashed border-[#d8cab2] pt-0.5 text-[10px] font-bold whitespace-nowrap text-[#2e2620]">
+              答え {formatPercent(props.trueProb)}
             </div>
           )}
-          {props.showTrueProb && (
-            <div className="whitespace-nowrap text-[10px] font-bold text-emerald-600 dark:text-emerald-300">
-              真 {formatPercent(props.trueProb)}
+          {lastOpen && turnMs >= 1000 && (
+            <div key={lastOpen.id} className={`float-text ${lastOpen.reward ? "float-text--win" : "float-text--miss"}`}>
+              {lastOpen.reward ? "当たり！" : "ハズレ…"}
             </div>
           )}
         </div>

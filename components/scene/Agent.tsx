@@ -1,9 +1,10 @@
 "use client";
 
-import { RoundedBox } from "@react-three/drei";
+import { Outlines, RoundedBox } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
+import { INK, Toon } from "./materials";
 import { SceneHtml } from "./SceneHtml";
 import type { DecisionMode } from "@/lib/bandits/types";
 import { EXPLOIT_COLOR, EXPLORE_COLOR } from "@/lib/island";
@@ -33,7 +34,7 @@ export function Agent({ pending, lastEvent, turnMs }: AgentProps) {
   const footL = useRef<THREE.Mesh>(null);
   const footR = useRef<THREE.Mesh>(null);
   const eyes = useRef<THREE.Group>(null);
-  const antenna = useRef<THREE.MeshStandardMaterial>(null);
+  const antenna = useRef<THREE.MeshToonMaterial>(null);
 
   const pos = useRef(HUB.clone());
   const reaction = useRef({ at: -Infinity, reward: 0 as 0 | 1 });
@@ -147,63 +148,65 @@ export function Agent({ pending, lastEvent, turnMs }: AgentProps) {
         {/* feet */}
         <mesh ref={footL} position={[-0.13, 0.07, 0]} castShadow>
           <sphereGeometry args={[0.1, 12, 8]} />
-          <meshStandardMaterial color="#64748b" roughness={0.6} />
+          <Toon color="#64748b" />
         </mesh>
         <mesh ref={footR} position={[0.13, 0.07, 0]} castShadow>
           <sphereGeometry args={[0.1, 12, 8]} />
-          <meshStandardMaterial color="#64748b" roughness={0.6} />
+          <Toon color="#64748b" />
         </mesh>
         {/* body */}
         <RoundedBox args={[0.5, 0.44, 0.4]} radius={0.14} position={[0, 0.38, 0]} castShadow>
-          <meshStandardMaterial color="#f8fafc" roughness={0.35} />
+          <Toon color="#f7f1e6" />
+          <Outlines thickness={0.02} color={INK} />
         </RoundedBox>
         <mesh position={[0, 0.4, 0.201]}>
           <circleGeometry args={[0.08, 16]} />
-          <meshStandardMaterial color="#38bdf8" emissive="#38bdf8" emissiveIntensity={0.6} />
+          <Toon color="#38bdf8" emissive="#38bdf8" emissiveIntensity={0.6} />
         </mesh>
         {/* arms */}
         <group ref={armL} position={[-0.3, 0.52, 0]}>
           <mesh position={[0, -0.12, 0]} castShadow>
             <capsuleGeometry args={[0.055, 0.16, 4, 8]} />
-            <meshStandardMaterial color="#e2e8f0" />
+            <Toon color="#e2e8f0" />
           </mesh>
         </group>
         <group ref={armR} position={[0.3, 0.52, 0]}>
           <mesh position={[0, -0.12, 0]} castShadow>
             <capsuleGeometry args={[0.055, 0.16, 4, 8]} />
-            <meshStandardMaterial color="#e2e8f0" />
+            <Toon color="#e2e8f0" />
           </mesh>
         </group>
         {/* head */}
         <group ref={head} position={[0, 0.86, 0]}>
           <RoundedBox args={[0.64, 0.48, 0.5]} radius={0.17} castShadow>
-            <meshStandardMaterial color="#ffffff" roughness={0.3} />
+            <Toon color="#fbf7ee" />
+            <Outlines thickness={0.02} color={INK} />
           </RoundedBox>
           <RoundedBox args={[0.5, 0.3, 0.06]} radius={0.08} position={[0, 0, 0.23]}>
-            <meshStandardMaterial color="#1e293b" roughness={0.2} />
+            <Toon color="#1e293b" />
           </RoundedBox>
           <group ref={eyes} position={[0, 0.02, 0.27]}>
             {[-0.11, 0.11].map((x) => (
               <mesh key={x} position={[x, 0, 0]}>
                 <sphereGeometry args={[0.055, 12, 10]} />
-                <meshStandardMaterial color="#a5f3fc" emissive="#22d3ee" emissiveIntensity={1.6} />
+                <Toon color="#a5f3fc" emissive="#22d3ee" emissiveIntensity={1.6} />
               </mesh>
             ))}
           </group>
           {[-0.2, 0.2].map((x) => (
             <mesh key={x} position={[x, -0.1, 0.262]} scale={[1, 0.6, 0.3]}>
               <sphereGeometry args={[0.04, 8, 6]} />
-              <meshStandardMaterial color="#fb7185" emissive="#fb7185" emissiveIntensity={0.4} />
+              <Toon color="#fb7185" emissive="#fb7185" emissiveIntensity={0.4} />
             </mesh>
           ))}
           {/* antenna: its light shows explore (violet) / exploit (amber) */}
           <mesh position={[0, 0.32, 0]}>
             <cylinderGeometry args={[0.015, 0.015, 0.18, 6]} />
-            <meshStandardMaterial color="#94a3b8" />
+            <Toon color="#94a3b8" />
           </mesh>
           <mesh position={[0, 0.44, 0]}>
             <sphereGeometry args={[0.075, 14, 10]} />
-            <meshStandardMaterial ref={antenna} color="#67e8f9" emissive="#67e8f9" emissiveIntensity={1.2} />
+            <Toon ref={antenna} color="#67e8f9" emissive="#67e8f9" emissiveIntensity={1.2} />
           </mesh>
         </group>
       </group>
@@ -213,9 +216,9 @@ export function Agent({ pending, lastEvent, turnMs }: AgentProps) {
         {pending && animated ? (
           <div
             key={pending.id}
-            className={`agent-chip ${pending.mode === "explore" ? "agent-chip--explore" : "agent-chip--exploit"}`}
+            className={`agent-chip stamp ${pending.mode === "explore" ? "agent-chip--explore" : "agent-chip--exploit"}`}
           >
-            {pending.mode === "explore" ? "🔍 探索" : "💰 活用"}
+            {pending.mode === "explore" ? "探索" : "活用"}
           </div>
         ) : null}
       </SceneHtml>

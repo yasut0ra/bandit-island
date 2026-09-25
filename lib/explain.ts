@@ -5,7 +5,6 @@ export interface AlgorithmInfo {
   id: AlgorithmId;
   name: string;
   tagline: string;
-  emoji: string;
   /** Beginner-friendly explanation. */
   description: string;
   analogy: string;
@@ -18,7 +17,6 @@ export const ALGORITHM_INFO: Record<AlgorithmId, AlgorithmInfo> = {
     id: "random",
     name: "Random",
     tagline: "いつも運まかせ",
-    emoji: "🎲",
     description: "毎回サイコロを振って、どの宝箱を開けるか決めます。過去の結果はまったく使いません。",
     analogy: "レストランを毎回くじ引きで決める人。",
     strength: "比べるための基準（ベースライン）になる",
@@ -27,8 +25,7 @@ export const ALGORITHM_INFO: Record<AlgorithmId, AlgorithmInfo> = {
   epsilonGreedy: {
     id: "epsilonGreedy",
     name: "ε-Greedy",
-    tagline: "たまに気まぐれ",
-    emoji: "🪙",
+    tagline: "たまに寄り道",
     description:
       "ふだんは「今のところ一番当たりやすい箱」を選びます（活用）。ただし確率 ε（イプシロン）でランダムに箱を選び、新しい情報を集めます（探索）。",
     analogy: "いつもの店に行くけれど、10回に1回は新しい店を試す人。",
@@ -39,7 +36,6 @@ export const ALGORITHM_INFO: Record<AlgorithmId, AlgorithmInfo> = {
     id: "ucb1",
     name: "UCB1",
     tagline: "楽観的なチャレンジャー",
-    emoji: "🔭",
     description:
       "「推定当たり確率」に「まだよく分からない分のボーナス」を足したスコアで選びます。あまり試していない箱ほどボーナスが大きく、「もしかしたら良いかも」と楽観的に考えます。",
     analogy: "口コミが少ない店ほど「隠れた名店かも」と期待して行ってみる人。",
@@ -50,7 +46,6 @@ export const ALGORITHM_INFO: Record<AlgorithmId, AlgorithmInfo> = {
     id: "thompson",
     name: "Thompson Sampling",
     tagline: "想像力で決める",
-    emoji: "🔮",
     description:
       "各宝箱について「本当はこれくらいの当たり確率かも」という想像（確率分布）を持ち、毎回その想像からランダムに値を1つ引いて、一番高かった箱を選びます。自信のない箱ほど想像の幅が広く、ときどき高い値が出るので自然に探索します。",
     analogy: "経験から「たぶんこの店が一番。でも、あの店も案外…」と直感で選ぶ人。",

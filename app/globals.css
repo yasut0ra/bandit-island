@@ -2,64 +2,79 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/*
+ * Art direction: a storybook / wooden-toy world.
+ * Materials: warm paper (surfaces), ink (text), wood & brass (controls).
+ * Only two accents carry meaning: plum ink = 探索 (explore), ochre = 活用 (exploit).
+ * Chest colours appear only where a chest is meant.
+ */
 :root {
-  --bg: #f6f2ea;
-  --bg-accent: #e9f4ff;
-  --panel: rgba(255, 255, 255, 0.78);
-  --panel-solid: #ffffff;
-  --panel-soft: #f8f5ef;
-  --ink: #1f2433;
-  --muted: #676d7e;
-  --line: #e8e1d4;
-  --explore: #8b5cf6;
-  --explore-soft: #ede9fe;
-  --exploit: #d97706;
-  --exploit-soft: #fef3c7;
-  --reward: #e59400;
-  --regret: #e11d48;
-  --grid: #ece7de;
-  --sky-top: #8fcaff;
-  --sky-mid: #cfe8ff;
-  --sky-bottom: #ffe7cf;
+  --paper: #f2ebdd;
+  --paper-2: #e9dfcc;
+  --sheet: #fbf7ef;
+  --ink: #2e2620;
+  --ink-2: #6f6254;
+  --ink-3: #a4957f;
+  --rule: #d8cab2;
+  --wood: #a8733f;
+  --wood-dark: #6f4526;
+  --wood-light: #d8ab76;
+  --brass: #d9a441;
+  --brass-dark: #a8761f;
+  --explore: #6a58c7;
+  --explore-wash: #e7e1f7;
+  --exploit: #c07a1e;
+  --exploit-wash: #f5e6c9;
+  --reward: #c07a1e;
+  --regret: #b4513a;
+  --fog: #b9aee6;
+  --sky-top: #b8d6e3;
+  --sky-bottom: #f5e3c8;
 }
 
 .dark {
-  --bg: #0f1224;
-  --bg-accent: #1a1740;
-  --panel: rgba(24, 28, 54, 0.78);
-  --panel-solid: #181c36;
-  --panel-soft: #1f2442;
-  --ink: #eef0ff;
-  --muted: #a3a8c3;
-  --line: #2c3258;
-  --explore: #a78bfa;
-  --explore-soft: #2e2463;
-  --exploit: #fbbf24;
-  --exploit-soft: #3d2f12;
-  --reward: #fbbf24;
-  --regret: #fb7185;
-  --grid: #2a2f52;
-  --sky-top: #0b1030;
-  --sky-mid: #25225c;
-  --sky-bottom: #4a2f63;
+  --paper: #161a29;
+  --paper-2: #1c2134;
+  --sheet: #20263b;
+  --ink: #f1e9d8;
+  --ink-2: #b1a893;
+  --ink-3: #7c7568;
+  --rule: #353b55;
+  --wood: #7f5738;
+  --wood-dark: #4f3421;
+  --wood-light: #a47249;
+  --brass: #d6a44a;
+  --brass-dark: #9c6f22;
+  --explore: #a898f2;
+  --explore-wash: #2c2750;
+  --exploit: #e3a653;
+  --exploit-wash: #3a2c16;
+  --reward: #e3a653;
+  --regret: #e0826a;
+  --fog: #6e62a8;
+  --sky-top: #141a36;
+  --sky-bottom: #3a2f52;
 }
 
 @theme inline {
-  --color-bg: var(--bg);
-  --color-panel: var(--panel);
-  --color-panel-solid: var(--panel-solid);
-  --color-panel-soft: var(--panel-soft);
+  --color-paper: var(--paper);
+  --color-paper-2: var(--paper-2);
+  --color-sheet: var(--sheet);
   --color-ink: var(--ink);
-  --color-muted: var(--muted);
-  --color-line: var(--line);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-rule: var(--rule);
+  --color-wood: var(--wood);
+  --color-wood-dark: var(--wood-dark);
+  --color-brass: var(--brass);
   --color-explore: var(--explore);
-  --color-explore-soft: var(--explore-soft);
+  --color-explore-wash: var(--explore-wash);
   --color-exploit: var(--exploit);
-  --color-exploit-soft: var(--exploit-soft);
+  --color-exploit-wash: var(--exploit-wash);
   --color-reward: var(--reward);
   --color-regret: var(--regret);
-  --font-display: var(--font-fredoka), "Hiragino Maru Gothic ProN", system-ui, sans-serif;
-  --font-sans: "Hiragino Maru Gothic ProN", "Hiragino Sans", "BIZ UDPGothic", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+  --font-serif: var(--font-fraunces), "Hiragino Mincho ProN", serif;
+  --font-sans: var(--font-zen-maru), "Hiragino Maru Gothic ProN", "Hiragino Sans", system-ui, sans-serif;
 }
 
 html {
@@ -70,105 +85,310 @@ html.dark {
 }
 
 body {
-  background:
-    radial-gradient(1200px 600px at 10% -10%, var(--bg-accent), transparent 60%),
-    radial-gradient(900px 500px at 100% 0%, color-mix(in oklab, var(--explore-soft) 60%, transparent), transparent 60%),
-    var(--bg);
+  background-color: var(--paper);
+  /* faint paper grain */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.27 0 0 0 0 0.18 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   color: var(--ink);
   font-family: var(--font-sans);
+  font-feature-settings: "palt";
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
   overflow-x: clip;
 }
 
+::selection {
+  background: var(--exploit-wash);
+}
+
+/* Component classes live in a layer so Tailwind utilities (absolute, rotate, …) can override them. */
+@layer components {
+/* ---------- type scale: display / heading / body / label ---------- */
+.t-display {
+  font-family: var(--font-serif);
+  font-variation-settings: "SOFT" 100, "WONK" 1;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.t-num {
+  font-family: var(--font-serif);
+  font-variation-settings: "SOFT" 100;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.t-label {
+  font-size: 12px;
+  color: var(--ink-2);
+  letter-spacing: 0.04em;
+}
+
+/* ---------- the illustration plate that holds the island ---------- */
+.plate {
+  background: var(--sheet);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 30px 60px -38px rgba(60, 40, 20, 0.55),
+    0 2px 6px rgba(60, 40, 20, 0.08);
+}
+.dark .plate {
+  box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.7), 0 2px 6px rgba(0, 0, 0, 0.3);
+}
 .sky {
-  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 55%, var(--sky-bottom) 100%);
+  background:
+    radial-gradient(120% 70% at 50% 110%, rgba(255, 255, 255, 0.35), transparent 60%),
+    linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 100%);
 }
 
-.glass {
-  background: var(--panel);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+/* ---------- wooden control deck ---------- */
+.wood {
+  background-color: var(--wood);
+  background-image:
+    repeating-linear-gradient(
+      178deg,
+      rgba(255, 255, 255, 0.05) 0 2px,
+      transparent 2px 9px,
+      rgba(70, 40, 15, 0.07) 9px 10px,
+      transparent 10px 17px
+    ),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(0, 0, 0, 0.1));
+  box-shadow:
+    0 2px 0 rgba(255, 255, 255, 0.25) inset,
+    0 -3px 0 rgba(60, 30, 10, 0.25) inset,
+    0 18px 30px -18px rgba(60, 35, 15, 0.7);
+}
+.carved {
+  color: #f6e7cf;
+  text-shadow: 0 -1px 0 rgba(60, 30, 10, 0.55), 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+.nail {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 35% 35%, #f3dfb0, #8a6a3a 70%);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
 }
 
-/* --- 3D labels (drei <Html>) --- */
+/* brass buttons */
+.brass {
+  background: radial-gradient(circle at 35% 30%, #fbe3a1 0%, var(--brass) 45%, var(--brass-dark) 100%);
+  color: #3a2410;
+  box-shadow:
+    0 3px 0 #6b4a17,
+    0 6px 12px -4px rgba(40, 20, 5, 0.6),
+    0 1px 0 rgba(255, 255, 255, 0.6) inset;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+.brass:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+.brass:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #6b4a17, 0 3px 6px -3px rgba(40, 20, 5, 0.6), 0 1px 0 rgba(255, 255, 255, 0.5) inset;
+}
+.brass:disabled {
+  filter: grayscale(0.7) brightness(0.9);
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* luggage tags for the four algorithms */
+.tag {
+  position: relative;
+  background: #f8efdc;
+  color: #2e2620;
+  border-radius: 4px 14px 14px 4px;
+  box-shadow: 0 2px 0 rgba(60, 30, 10, 0.25), 0 6px 10px -6px rgba(40, 20, 5, 0.6);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.tag::before {
+  /* the punched hole */
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  margin-top: -3.5px;
+  border-radius: 999px;
+  background: var(--wood-dark);
+  box-shadow: 0 0 0 2px #e3cfa6;
+}
+.tag[aria-checked="true"] {
+  background: #fffaf0;
+  transform: translateY(-3px) rotate(0deg) !important;
+  box-shadow: 0 0 0 2px var(--ink), 0 10px 16px -8px rgba(40, 20, 5, 0.7);
+}
+
+/* speed notches carved into the wood */
+.notch {
+  color: #f6e7cf;
+  background: rgba(60, 30, 10, 0.28);
+  box-shadow: 0 1px 2px rgba(40, 20, 5, 0.5) inset;
+}
+.notch[aria-checked="true"] {
+  background: #f8efdc;
+  color: #2e2620;
+  box-shadow: 0 2px 0 rgba(60, 30, 10, 0.35);
+}
+
+/* ---------- paper details ---------- */
+.sheet {
+  background: var(--sheet);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset, 0 12px 30px -24px rgba(60, 40, 20, 0.5);
+}
+.tape {
+  position: absolute;
+  width: 58px;
+  height: 18px;
+  background: rgba(233, 214, 160, 0.72);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.06);
+  mix-blend-mode: multiply;
+}
+.dark .tape {
+  background: rgba(200, 180, 130, 0.35);
+  mix-blend-mode: normal;
+}
+
+/* rubber stamp for 探索 / 活用 */
+.stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  padding: 0.15em 0.55em;
+  border: 1.5px solid currentColor;
+  border-radius: 6px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  transform: rotate(-4deg);
+  box-shadow: 0 0 0 2px var(--sheet) inset, 0 0 0 3px currentColor inset;
+  opacity: 0.92;
+}
+
+/* speech bubble */
+.bubble {
+  position: relative;
+  background: var(--sheet);
+  border: 1.5px solid var(--ink);
+  border-radius: 22px 22px 22px 6px;
+  box-shadow: 4px 5px 0 rgba(46, 38, 32, 0.14);
+}
+.dark .bubble {
+  box-shadow: 4px 5px 0 rgba(0, 0, 0, 0.35);
+}
+.bubble--tail::after {
+  content: "";
+  position: absolute;
+  right: 14%;
+  top: -13px;
+  width: 22px;
+  height: 22px;
+  background: var(--sheet);
+  border-left: 1.5px solid var(--ink);
+  border-top: 1.5px solid var(--ink);
+  transform: skewX(28deg) rotate(20deg);
+  border-radius: 4px 0 0 0;
+}
+
+.squiggle {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='6' viewBox='0 0 24 6'%3E%3Cpath d='M0 3 Q 6 0 12 3 T 24 3' fill='none' stroke='%23c07a1e' stroke-width='1.6'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-position: 0 100%;
+  background-size: 16px 5px;
+  padding-bottom: 5px;
+}
+
+.rule-dotted {
+  background-image: radial-gradient(circle, var(--rule) 1px, transparent 1.4px);
+  background-size: 7px 7px;
+  background-repeat: repeat-x;
+  height: 7px;
+}
+
+/* ---------- 3D labels (drei <Html>) ---------- */
 .chest-label {
   position: relative;
-  transform: translateY(-4px);
-  padding: 4px 8px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.9);
-  color: #1f2433;
+  padding: 5px 9px 4px;
+  border-radius: 3px;
+  background: #fbf6ea;
+  color: #2e2620;
   font-size: 11px;
-  line-height: 1.35;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.15);
-  border: 2px solid transparent;
+  line-height: 1.3;
   text-align: center;
-  transition: border-color 0.2s, transform 0.2s;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05), 0 5px 10px -5px rgba(40, 25, 10, 0.5);
+  transform: rotate(var(--tilt, 0deg));
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
   user-select: none;
 }
-@media (max-width: 640px) {
-  .chest-label {
-    padding: 2px 5px;
-    font-size: 9px;
-    border-radius: 8px;
-  }
-  .chest-label div {
-    font-size: 9px !important;
-  }
-  .float-text--win {
-    font-size: 15px;
-  }
-}
-.dark .chest-label {
-  background: rgba(24, 28, 54, 0.88);
-  color: #eef0ff;
+.chest-label::before {
+  /* thumbtack in the chest colour */
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  margin-left: -4.5px;
+  border-radius: 999px;
+  background: var(--chest);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.35), 0 0 0 1.5px #fbf6ea;
 }
 .chest-label--target {
-  border-color: var(--chest);
-  transform: translateY(-8px) scale(1.08);
+  transform: rotate(0deg) translateY(-6px) scale(1.1);
+  box-shadow: 0 0 0 1.5px #2e2620, 0 10px 16px -8px rgba(40, 25, 10, 0.6);
 }
 
 .agent-chip {
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 12px;
   font-weight: 700;
-  color: white;
+  font-size: 12px;
+  letter-spacing: 0.1em;
   white-space: nowrap;
+  padding: 1px 8px;
+  background: #fbf6ea;
   animation: pop-in 0.25s ease-out;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.25);
 }
 .agent-chip--explore {
-  background: #8b5cf6;
+  color: #6a58c7;
 }
 .agent-chip--exploit {
-  background: #d97706;
+  color: #c07a1e;
 }
 
 .float-text {
   position: absolute;
   left: 50%;
   bottom: 100%;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   translate: -50% 0;
   opacity: 0;
   pointer-events: none;
-  font-weight: 800;
+  font-family: var(--font-serif);
+  font-weight: 700;
   white-space: nowrap;
   animation: float-up 1.3s ease-out forwards;
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
   user-select: none;
 }
 .float-text--win {
-  font-size: 20px;
-  color: #fde047;
-  -webkit-text-stroke: 1px #b45309;
+  font-size: 22px;
+  font-style: italic;
+  color: #fff4cf;
+  text-shadow: 0 2px 0 #a8761f, 0 4px 10px rgba(120, 70, 10, 0.4);
 }
 .float-text--miss {
   font-size: 15px;
-  color: #e2e8f0;
-  -webkit-text-stroke: 0.5px #475569;
+  color: #f1ebe0;
+  text-shadow: 0 1px 0 #6f6254, 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+@media (max-width: 640px) {
+  .chest-label {
+    padding: 3px 6px 2px;
+    font-size: 9px;
+  }
+  .chest-label div {
+    font-size: 9px !important;
+  }
+  .float-text--win {
+    font-size: 16px;
+  }
+}
 }
 
 @keyframes float-up {
@@ -178,11 +398,11 @@ body {
   100% { opacity: 0; transform: translateY(-46px) scale(1); }
 }
 @keyframes pop-in {
-  from { opacity: 0; transform: scale(0.6); }
-  to { opacity: 1; transform: scale(1); }
+  from { opacity: 0; transform: scale(0.6) rotate(-4deg); }
+  to { opacity: 1; transform: scale(1) rotate(-4deg); }
 }
 @keyframes fade-slide {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
 .animate-fade-slide {
@@ -193,7 +413,7 @@ body {
 }
 
 input[type="range"] {
-  accent-color: var(--explore);
+  accent-color: var(--ink);
 }
 
 @media (prefers-reduced-motion: reduce) {

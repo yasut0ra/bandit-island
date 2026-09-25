@@ -80,9 +80,9 @@ export function LineChart({ title, series, turns, height = 150, markers = [], fo
   return (
     <div>
       <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-xs font-bold text-ink">{title}</h3>
+        <h3 className="text-[14px] font-bold text-ink">{title}</h3>
         {series.length > 1 && (
-          <div className="flex flex-wrap gap-3 text-[10px] text-muted">
+          <div className="flex flex-wrap gap-3 text-[12px] text-ink-2">
             {series.map((s) => (
               <span key={s.id} className="flex items-center gap-1">
                 <svg width="16" height="6" aria-hidden>
@@ -107,22 +107,22 @@ export function LineChart({ title, series, turns, height = 150, markers = [], fo
           >
             {ticks.map((t) => (
               <g key={t}>
-                <line x1={PAD.left} x2={width - PAD.right} y1={y(t)} y2={y(t)} stroke="var(--grid)" strokeWidth="1" />
-                <text x={PAD.left - 6} y={y(t) + 3} textAnchor="end" fontSize="10" fill="var(--muted)">
+                <line x1={PAD.left} x2={width - PAD.right} y1={y(t)} y2={y(t)} stroke="var(--rule)" strokeWidth="1" />
+                <text x={PAD.left - 6} y={y(t) + 3} textAnchor="end" fontSize="10" fill="var(--ink-3)">
                   {Number.isInteger(t) ? t : t.toFixed(1)}
                 </text>
               </g>
             ))}
-            <text x={width - PAD.right} y={height - 5} textAnchor="end" fontSize="10" fill="var(--muted)">
+            <text x={width - PAD.right} y={height - 5} textAnchor="end" fontSize="10" fill="var(--ink-3)">
               {xMax.toLocaleString()} ターン
             </text>
-            <text x={PAD.left} y={height - 5} fontSize="10" fill="var(--muted)">
+            <text x={PAD.left} y={height - 5} fontSize="10" fill="var(--ink-3)">
               0
             </text>
             {markers.map((m, i) => (
               <g key={i}>
-                <line x1={x(m.turn)} x2={x(m.turn)} y1={PAD.top} y2={PAD.top + innerH} stroke="var(--muted)" strokeDasharray="2 3" strokeWidth="1" />
-                <text x={x(m.turn) + 3} y={PAD.top + 9} fontSize="9" fill="var(--muted)">
+                <line x1={x(m.turn)} x2={x(m.turn)} y1={PAD.top} y2={PAD.top + innerH} stroke="var(--ink-3)" strokeDasharray="2 3" strokeWidth="1" />
+                <text x={x(m.turn) + 3} y={PAD.top + 9} fontSize="9" fill="var(--ink-3)">
                   {m.label}
                 </text>
               </g>
@@ -142,14 +142,14 @@ export function LineChart({ title, series, turns, height = 150, markers = [], fo
             ))}
             {hover !== null && (
               <g>
-                <line x1={x(turns[hover])} x2={x(turns[hover])} y1={PAD.top} y2={PAD.top + innerH} stroke="var(--muted)" strokeWidth="1" />
+                <line x1={x(turns[hover])} x2={x(turns[hover])} y1={PAD.top} y2={PAD.top + innerH} stroke="var(--ink-3)" strokeWidth="1" />
                 {series.map((s) => (
-                  <circle key={s.id} cx={x(turns[hover])} cy={y(s.values[hover])} r="4" fill={s.color} stroke="var(--panel-solid)" strokeWidth="2" />
+                  <circle key={s.id} cx={x(turns[hover])} cy={y(s.values[hover])} r="4" fill={s.color} stroke="var(--sheet)" strokeWidth="2" />
                 ))}
               </g>
             )}
             {n === 0 && emptyText && (
-              <text x={width / 2} y={height / 2} textAnchor="middle" fontSize="11" fill="var(--muted)">
+              <text x={width / 2} y={height / 2} textAnchor="middle" fontSize="11" fill="var(--ink-3)">
                 {emptyText}
               </text>
             )}
@@ -157,14 +157,14 @@ export function LineChart({ title, series, turns, height = 150, markers = [], fo
         )}
         {hover !== null && width > 0 && (
           <div
-            className="pointer-events-none absolute top-1 z-10 rounded-xl bg-panel-solid px-2.5 py-1.5 text-[11px] shadow-lg ring-1 ring-line"
+            className="pointer-events-none absolute top-1 z-10 rounded-lg bg-sheet px-2.5 py-1.5 text-[12px] shadow-lg ring-1 ring-rule"
             style={{
               left: Math.min(Math.max(0, x(turns[hover]) + 8), width - 150),
             }}
           >
             <div className="font-bold text-ink">ターン {turns[hover].toLocaleString()}</div>
             {series.map((s) => (
-              <div key={s.id} className="flex items-center gap-1.5 text-muted">
+              <div key={s.id} className="flex items-center gap-1.5 text-ink-2">
                 <span className="inline-block h-2 w-2 rounded-full" style={{ background: s.color }} />
                 {s.label}: <span className="font-semibold text-ink tabular-nums">{format(s.values[hover])}</span>
               </div>
@@ -206,18 +206,18 @@ export function HistoryCharts({ cumReward, cumRegret, algorithms, probs }: Histo
   }, [algorithms]);
 
   const rewardSeries: LineSeries[] = [
-    { id: "reward", label: "実際の累積報酬", color: "var(--reward)", values: turns.map((t) => cumReward[t - 1]) },
-    { id: "ideal", label: "理想（常に最良の箱）", color: "var(--muted)", values: turns.map((t) => t * best), dashed: true },
+    { id: "reward", label: "ピコ", color: "var(--reward)", values: turns.map((t) => cumReward[t - 1]) },
+    { id: "ideal", label: "いつも最良の箱なら", color: "var(--ink-3)", values: turns.map((t) => t * best), dashed: true },
   ];
   const regretSeries: LineSeries[] = [
-    { id: "regret", label: "累積後悔", color: "var(--regret)", values: turns.map((t) => cumRegret[t - 1]) },
-    { id: "random", label: "参考：Random の期待値", color: "var(--muted)", values: turns.map((t) => t * (best - meanP)), dashed: true },
+    { id: "regret", label: "ピコ", color: "var(--regret)", values: turns.map((t) => cumRegret[t - 1]) },
+    { id: "random", label: "Random なら", color: "var(--ink-3)", values: turns.map((t) => t * (best - meanP)), dashed: true },
   ];
 
   return (
-    <div className="grid gap-5 md:grid-cols-2">
+    <div className="grid gap-8 md:grid-cols-2">
       <LineChart
-        title="🪙 累積報酬（Cumulative Reward）"
+        title="累積報酬"
         series={rewardSeries}
         turns={turns}
         markers={markers}
@@ -225,7 +225,7 @@ export function HistoryCharts({ cumReward, cumRegret, algorithms, probs }: Histo
         emptyText="再生するとグラフが伸びていきます"
       />
       <LineChart
-        title="😣 累積後悔（Cumulative Regret）"
+        title="累積後悔"
         series={regretSeries}
         turns={turns}
         markers={markers}
@@ -267,11 +267,11 @@ export function ChoiceTimeline({ choices, dark }: { choices: number[]; dark: boo
   return (
     <div>
       <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-xs font-bold text-ink">🧭 選んだ宝箱の移り変わり</h3>
-        <div className="flex flex-wrap gap-2.5 text-[10px] text-muted">
+        <h3 className="text-[14px] font-bold text-ink">ピコが選んだ宝箱の移り変わり</h3>
+        <div className="flex flex-wrap gap-2.5 text-[12px] text-ink-2">
           {CHESTS.map((c, i) => (
             <span key={c.name} className="flex items-center gap-1">
-              <span className="inline-block h-2 w-2 rounded-sm" style={{ background: chestColor(i, dark) }} />
+              <span className="inline-block h-2.5 w-2.5 rounded-[3px]" style={{ background: chestColor(i, dark) }} />
               {c.name}
             </span>
           ))}
@@ -281,8 +281,8 @@ export function ChoiceTimeline({ choices, dark }: { choices: number[]; dark: boo
         {width > 0 && (
           <svg width={width} height={height} role="img" aria-label="選んだ宝箱の割合の時間変化" className="block" onPointerLeave={() => setHover(null)}>
             {n === 0 && (
-              <text x={width / 2} y={height / 2 + 4} textAnchor="middle" fontSize="11" fill="var(--muted)">
-                はじめはいろいろな色が混ざり、学習が進むと1色に近づきます
+              <text x={width / 2} y={height / 2 + 4} textAnchor="middle" fontSize="11" fill="var(--ink-3)">
+                はじめは色が混ざり、学ぶほど1色に近づいていきます
               </text>
             )}
             {bins.map((bin, b) => {
@@ -315,7 +315,7 @@ export function ChoiceTimeline({ choices, dark }: { choices: number[]; dark: boo
         )}
         {hover !== null && bins[hover] && (
           <div
-            className="pointer-events-none absolute bottom-full z-10 mb-1 rounded-xl bg-panel-solid px-2.5 py-1.5 text-[11px] shadow-lg ring-1 ring-line"
+            className="pointer-events-none absolute bottom-full z-10 mb-1 rounded-lg bg-sheet px-2.5 py-1.5 text-[12px] shadow-lg ring-1 ring-rule"
             style={{ left: Math.min(Math.max(0, hover * barW - 40), width - 160) }}
           >
             <div className="font-bold text-ink">
@@ -323,7 +323,7 @@ export function ChoiceTimeline({ choices, dark }: { choices: number[]; dark: boo
             </div>
             {bins[hover].counts.map((count, i) =>
               count > 0 ? (
-                <div key={i} className="flex items-center gap-1.5 text-muted">
+                <div key={i} className="flex items-center gap-1.5 text-ink-2">
                   <span className="inline-block h-2 w-2 rounded-full" style={{ background: chestColor(i, dark) }} />
                   {CHESTS[i].name}: <span className="font-semibold text-ink">{formatPercent(count / (bins[hover].to - bins[hover].from))}</span>
                 </div>
@@ -331,7 +331,7 @@ export function ChoiceTimeline({ choices, dark }: { choices: number[]; dark: boo
             )}
           </div>
         )}
-        <div className="mt-1 flex justify-between text-[10px] text-muted">
+        <div className="mt-1 flex justify-between text-[12px] text-ink-2">
           <span>← はじめ</span>
           <span>最近 →</span>
         </div>
