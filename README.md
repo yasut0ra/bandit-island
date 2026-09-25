@@ -5,6 +5,8 @@
 
 **「探索と活用って、こういうことか！」が目で見て分かる、マルチアームド・バンディットの 3D 学習アプリ。**
 
+▶ **デモ：https://yasut0ra.github.io/bandit-island/**
+
 ![Bandit Island のスクリーンショット](docs/screenshot.png)
 
 小さな浮島に 5 つの宝箱があります。それぞれの宝箱には、ロボットには見えない「当たり確率」が隠されています。
@@ -40,6 +42,7 @@ npm run dev
 | --- | --- |
 | `npm run dev` | 開発サーバーを起動 |
 | `npm run build` / `npm start` | 本番ビルド / 本番サーバー起動 |
+| `PAGES_BASE_PATH=/bandit-island npm run build` | GitHub Pages 用の静的書き出し（`out/`）。`main` への push で自動デプロイされます |
 | `npm run typecheck` | TypeScript の型チェック |
 | `npm run test:bandits` | アルゴリズムの検証スクリプト（Beta 分布サンプラーの統計量、UCB1 の式、各手法が Random より後悔が小さいこと等） |
 

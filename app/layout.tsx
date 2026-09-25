@@ -22,7 +22,6 @@ export const metadata: Metadata = {
   title: "Bandit Island — 宝箱で学ぶマルチアームド・バンディット",
   description:
     "5つの宝箱とロボットで、探索（Exploration）と活用（Exploitation）のトレードオフを体験できるインタラクティブな3Dシミュレーション。",
-  icons: { icon: "/favicon.svg" },
 };
 
 export const viewport: Viewport = {
