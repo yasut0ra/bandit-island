@@ -12,8 +12,8 @@ import {
   type ArmStats,
   type Decision,
 } from "@/lib/bandits/index.ts";
-import { CHESTS, chestColor, formatPercent } from "@/lib/island";
-import { ChestSticker, Note, Ribbon, ToggleChip } from "../ui";
+import { CHESTS, WEATHERS, chestColor, formatPercent } from "@/lib/island";
+import { ChestSticker, Note, Ribbon, ToggleChip, WeatherGlyph } from "../ui";
 
 interface ChestLedgerProps {
   arms: readonly ArmStats[];
@@ -24,7 +24,33 @@ interface ChestLedgerProps {
   estimatedBest: number | null;
   lastArm: number | null;
   lastDecision: Decision | null;
+  /** On the weather island: records and truths per weather, and which one is shown. */
+  weather: { arms: ArmStats[][]; probs: number[][]; current: number; aware: boolean } | null;
   dark: boolean;
+}
+
+/** Per-weather rows: how the same chest looks under each weather. */
+function WeatherRows({ index, color, weather, showTrue }: { index: number; color: string; weather: NonNullable<ChestLedgerProps["weather"]>; showTrue: boolean }) {
+  return (
+    <div className="mt-3 space-y-1.5 border-t-2 border-dashed border-panel-3 pt-2.5">
+      <div className="text-[11px] font-extrabold text-ink-2">天気ごとの記録</div>
+      {WEATHERS.map((w, c) => {
+        const arm = weather.arms[c][index];
+        const est = arm.pulls > 0 ? sampleMean(arm) : null;
+        const today = c === weather.current;
+        return (
+          <div key={w.id} className={`flex items-center gap-1.5 rounded-lg px-1 ${today ? "bg-exploit-soft" : ""}`}>
+            <WeatherGlyph context={c} size={18} />
+            <div className="meter !h-[9px] flex-1 !border-2">
+              {est !== null && <i style={{ width: `${est * 100}%`, background: color }} />}
+            </div>
+            <span className="f-num w-9 text-right text-[13px] text-ink">{est === null ? "？" : formatPercent(est)}</span>
+            {showTrue && <span className="f-num w-8 text-right text-[11px] text-ink-3">{formatPercent(weather.probs[c][index])}</span>}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function fogWord(u: number): string {
@@ -98,13 +124,25 @@ function DetailRows({ index, arms, algorithm, lastDecision }: { index: number; a
 
 /** Party-lineup of the five chests, like a status screen in a game. */
 export function ChestLedger(props: ChestLedgerProps) {
-  const { arms, probs, showTrueProbs, estimatedBest, lastArm, dark } = props;
+  const { arms, probs, showTrueProbs, estimatedBest, lastArm, dark, weather } = props;
+  const viewLabel = weather
+    ? weather.aware
+      ? `推定成功確率（${WEATHERS[weather.current].name}の日）`
+      : "推定成功確率（天気を気にしない）"
+    : "推定成功確率";
   const [details, setDetails] = useState(false);
 
   return (
     <section>
       <div className="mb-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-        <Ribbon color="var(--sky)" sub="大きな数字がピコの見積もり（推定成功確率）。バーの薄い部分は「本当はこのあたりかも」という範囲です。">
+        <Ribbon
+          color="var(--sky)"
+          sub={
+            weather
+              ? "天気の島では、同じ宝箱でも天気で当たりやすさが変わります。下の「天気ごとの記録」に注目！ こたえを見ると、右側の小さな数字が本当の確率です。"
+              : "大きな数字がピコの見積もり（推定成功確率）。バーの薄い部分は「本当はこのあたりかも」という範囲です。"
+          }
+        >
           宝箱ステータス
         </Ribbon>
         <div className="flex gap-2">
@@ -140,7 +178,7 @@ export function ChestLedger(props: ChestLedgerProps) {
               </div>
 
               <div className="px-3.5 pt-3 pb-4">
-                <div className="text-[11px] font-extrabold text-ink-2">推定成功確率</div>
+                <div className="text-[11px] font-extrabold text-ink-2">{viewLabel}</div>
                 <div className="f-num text-[42px] leading-none text-ink">
                   {arm.pulls === 0 ? <span className="text-ink-3">？</span> : formatPercent(sampleMean(arm))}
                 </div>
@@ -169,7 +207,9 @@ export function ChestLedger(props: ChestLedgerProps) {
                   </div>
                 </div>
 
-                {showTrueProbs && (
+                {weather && <WeatherRows index={i} color={color} weather={weather} showTrue={showTrueProbs} />}
+
+                {showTrueProbs && !weather && (
                   <div className="mt-3 flex items-center justify-between rounded-xl bg-exploit-soft px-2.5 py-1 text-[12px] font-extrabold text-ink">
                     <span>こたえ</span>
                     <span className="f-num text-[17px]">{formatPercent(probs[i])}</span>

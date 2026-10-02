@@ -3,7 +3,7 @@
 import type { AlgorithmId } from "@/lib/bandits/types";
 import { CHESTS, formatPercent } from "@/lib/island";
 import { Note, Ribbon } from "../ui";
-import { ChoiceTimeline, HistoryCharts } from "./Charts";
+import { ChoiceTimeline, HistoryCharts, type ChartReferences } from "./Charts";
 
 interface LogbookProps {
   turn: number;
@@ -15,7 +15,10 @@ interface LogbookProps {
   cumReward: number[];
   cumRegret: number[];
   algorithms: AlgorithmId[];
-  probs: readonly number[];
+  aware: boolean[] | null;
+  /** Weather per turn on the weather island (null on the classic island). */
+  contexts: number[] | null;
+  references: ChartReferences;
   dark: boolean;
 }
 
@@ -39,7 +42,14 @@ export function Logbook(props: LogbookProps) {
 
   return (
     <section>
-      <Ribbon color="var(--mint)" sub="はじめはいろいろな箱を試すので帯の色がまざります。いい箱が分かると色がそろって、後悔の線がねていきます。">
+      <Ribbon
+        color="var(--mint)"
+        sub={
+          props.aware
+            ? "天気の島では、天気を見ないと後悔は青い点線（天気を見ない限界）に沿ってのび続けます。天気を見ると、その線より下に寝ていきます。"
+            : "はじめはいろいろな箱を試すので帯の色がまざります。いい箱が分かると色がそろって、後悔の線がねていきます。"
+        }
+      >
         冒険のきろく
       </Ribbon>
 
@@ -62,8 +72,14 @@ export function Logbook(props: LogbookProps) {
         </div>
 
         <div className="mt-7 space-y-8">
-          <ChoiceTimeline choices={props.choices} dark={props.dark} />
-          <HistoryCharts cumReward={props.cumReward} cumRegret={props.cumRegret} algorithms={props.algorithms} probs={props.probs} />
+          <ChoiceTimeline choices={props.choices} contexts={props.contexts} dark={props.dark} />
+          <HistoryCharts
+            cumReward={props.cumReward}
+            cumRegret={props.cumRegret}
+            algorithms={props.algorithms}
+            aware={props.aware}
+            references={props.references}
+          />
         </div>
       </div>
     </section>

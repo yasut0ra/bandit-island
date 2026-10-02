@@ -2,7 +2,7 @@
 
 import { ALGORITHM_IDS, type AlgorithmId } from "@/lib/bandits/index.ts";
 import { ALGORITHM_INFO } from "@/lib/explain";
-import { AlgoAvatar, KeyGlyph, Ribbon } from "../ui";
+import { AlgoAvatar, KeyGlyph, Ribbon, WeatherGlyph } from "../ui";
 
 const NOTES = [
   {
@@ -39,7 +39,22 @@ const KEY = [
   { glyph: "antenna", title: "アンテナの色", body: "紫なら探索中、黄色なら活用中" },
 ] as const;
 
-export function LearnSection({ onTry }: { onTry: (id: AlgorithmId) => void }) {
+const CONTEXT_STEPS = [
+  {
+    title: "文脈（Context）ってなに？",
+    body: "選ぶ前に分かる「手がかり」のこと。この島では天気です。動画アプリのおすすめなら、時間帯やその人の好みが文脈になります。",
+  },
+  {
+    title: "天気を見ないと…",
+    body: "記録を全部まとめるので「平均して一番」の箱に落ち着きます。でも晴れの日はソラ、雨の日はミントのほうがずっと当たる！ どんなにかしこくても越えられない壁があります（後悔グラフの青い点線）。",
+  },
+  {
+    title: "天気を見ると…",
+    body: "天気ごとに記録を分けて、天気ごとの一番を探します。天気の数だけバンディットを並べて解くイメージ。そのぶん、天気ごとに探索も必要です。",
+  },
+];
+
+export function LearnSection({ onTry, onWeatherMode }: { onTry: (id: AlgorithmId) => void; onWeatherMode: () => void }) {
   return (
     <section id="learn" className="scroll-mt-6 space-y-14">
       <div>
@@ -78,6 +93,39 @@ export function LearnSection({ onTry }: { onTry: (id: AlgorithmId) => void }) {
             </li>
           ))}
         </ul>
+      </div>
+
+      <div>
+        <Ribbon color="var(--sky)" sub="文脈付きバンディット（Contextual Bandit）は、「状況によって一番が変わる」問題です。">
+          天気の島のひみつ
+        </Ribbon>
+        <div className="panel mt-6 p-5 sm:p-7">
+          <div className="flex flex-wrap items-center gap-3">
+            {[0, 1, 2].map((c) => (
+              <span key={c} className="rounded-2xl border-[3px] border-line bg-panel-2 p-1.5">
+                <WeatherGlyph context={c} size={34} />
+              </span>
+            ))}
+            <p className="f-pop text-[17px] text-ink">はじめの天気の島では、晴れはソラ・雨はミント・くもりはモモが当たりやすい</p>
+          </div>
+          <ol className="mt-5 grid gap-4 md:grid-cols-3">
+            {CONTEXT_STEPS.map((step, i) => (
+              <li key={step.title} className="panel-soft px-4 py-4">
+                <div className="flex items-center gap-2">
+                  <span className="f-num flex h-7 w-7 items-center justify-center rounded-full border-2 border-line bg-sky text-[15px] text-white">{i + 1}</span>
+                  <h3 className="f-pop text-[15px] text-ink">{step.title}</h3>
+                </div>
+                <p className="mt-2 text-[13.5px] leading-[1.8] font-bold text-ink-2">{step.body}</p>
+              </li>
+            ))}
+          </ol>
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <button type="button" onClick={onWeatherMode} className="candy candy--sky px-6 py-2 text-[14px]">
+              天気の島で遊ぶ ↑
+            </button>
+            <span className="text-[13px] font-bold text-ink-2">「天気を見て選ぶ」を切り替えて、後悔グラフの違いを見てみよう。</span>
+          </div>
+        </div>
       </div>
 
       <div>

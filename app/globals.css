@@ -402,6 +402,20 @@ body::before {
     border: 3px solid var(--line);
   }
 
+  /* the weather island tints the daytime sky */
+  html:not(.dark) .stage[data-weather="sunny"] {
+    --stage-top: #6fcbff;
+    --stage-bottom: #fff0c4;
+  }
+  html:not(.dark) .stage[data-weather="rainy"] {
+    --stage-top: #8fa6cf;
+    --stage-bottom: #d5deef;
+  }
+  html:not(.dark) .stage[data-weather="cloudy"] {
+    --stage-top: #b3bfdf;
+    --stage-bottom: #eee8f6;
+  }
+
   /* ---------- 3D labels (drei <Html>) ---------- */
   .chest-label {
     position: relative;

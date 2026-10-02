@@ -2,8 +2,9 @@
  * Sanity checks for the bandit algorithms (run: npm run test:bandits).
  * Verifies the samplers and that learning algorithms beat Random on regret.
  */
-import { ALGORITHM_IDS, SeededRng, sampleBeta, computeUcb } from "../lib/bandits/index.ts";
+import { ALGORITHM_IDS, SeededRng, blindBestRegretRate, computeUcb, sampleBeta, singleContextEnv } from "../lib/bandits/index.ts";
 import { runExperiment } from "../lib/bandits/experiment.ts";
+import { islandEnv } from "../lib/island.ts";
 
 let failures = 0;
 function check(label: string, ok: boolean, detail = "") {
@@ -44,8 +45,9 @@ check("UCB1 unpulled arm has infinite score", ucb.scores[2] === Infinity);
 
 // 3. Learning beats Random
 const probs = [0.45, 0.15, 0.75, 0.3, 0.6];
+const env = singleContextEnv(probs);
 const results = ALGORITHM_IDS.map((algorithm) =>
-  runExperiment({ algorithm, probs, turns: 1000, runs: 200, epsilon: 0.1, seed: 7 }),
+  runExperiment({ algorithm, env, contextAware: true, turns: 1000, runs: 200, epsilon: 0.1, seed: 7 }),
 );
 for (const r of results) {
   console.log(
@@ -59,6 +61,26 @@ for (const r of results.slice(1)) {
 }
 const ts = results.find((r) => r.algorithm === "thompson")!;
 check("Thompson converges to best arm", ts.lateOptimalRate > 0.85);
+
+// 4. Contextual bandit (weather island)
+console.log("\n  weather island (contextual):");
+const weather = islandEnv("weather");
+const ceiling = blindBestRegretRate(weather);
+check("best context-blind policy has positive regret per turn (≈0.283)", Math.abs(ceiling - (0.7833 - 0.5)) < 0.01, ceiling.toFixed(3));
+for (const algorithm of ["epsilonGreedy", "ucb1", "thompson"] as const) {
+  const common = { algorithm, env: weather, turns: 2000, runs: 100, epsilon: 0.1, seed: 11 };
+  const blind = runExperiment({ ...common, contextAware: false });
+  const aware = runExperiment({ ...common, contextAware: true });
+  console.log(
+    `  ${algorithm.padEnd(14)} blind regret ${blind.meanTotalRegret.toFixed(1).padStart(6)}  aware regret ${aware.meanTotalRegret.toFixed(1).padStart(6)}  aware late-optimal ${(aware.lateOptimalRate * 100).toFixed(1)}%`,
+  );
+  check(`${algorithm}: blind regret stays near the ceiling (≥ 90% of ${(ceiling * 2000).toFixed(0)})`, blind.meanTotalRegret >= ceiling * 2000 * 0.9);
+  check(`${algorithm}: reading the weather cuts regret by more than half`, aware.meanTotalRegret < blind.meanTotalRegret * 0.5);
+}
+// A single-context environment must behave exactly the same whether "aware" or not.
+const a = runExperiment({ algorithm: "thompson", env, contextAware: true, turns: 300, runs: 20, epsilon: 0.1, seed: 3 });
+const b = runExperiment({ algorithm: "thompson", env, contextAware: false, turns: 300, runs: 20, epsilon: 0.1, seed: 3 });
+check("classic island: aware and blind are identical", a.meanTotalRegret === b.meanTotalRegret);
 
 if (failures > 0) {
   console.error(`\n${failures} check(s) failed`);

@@ -3,7 +3,7 @@
 import { JUMP_TURNS, SPEEDS, type BanditController } from "@/hooks/useBanditSimulation";
 import { ALGORITHM_IDS } from "@/lib/bandits/index.ts";
 import { ALGORITHM_INFO } from "@/lib/explain";
-import { AlgoAvatar } from "../ui";
+import { AlgoAvatar, ToggleChip } from "../ui";
 
 function PlayIcon({ playing }: { playing: boolean }) {
   return playing ? (
@@ -77,6 +77,16 @@ export function ControlDeck({ controller, onUserGesture }: { controller: BanditC
           <p className="mt-2.5 text-[12.5px] font-bold text-ink-2">
             <span className="text-ink">{info.name}</span>：{info.tagline}
           </p>
+          {state.mode === "weather" && (
+            <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+              <ToggleChip checked={state.contextAware} onChange={controller.setContextAware}>
+                天気を見て選ぶ
+              </ToggleChip>
+              <span className="text-[12px] font-bold text-ink-2">
+                {state.contextAware ? "天気ごとに記録を分けて学ぶ（文脈付き）" : "天気を無視して、全部まとめて学ぶ"}
+              </span>
+            </div>
+          )}
           {state.algorithm === "epsilonGreedy" && (
             <label className="mt-2 flex items-center gap-3 text-[12.5px] font-bold text-ink-2">
               <span className="shrink-0">寄り道の確率 ε</span>

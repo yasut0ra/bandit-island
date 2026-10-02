@@ -13,12 +13,14 @@ import { SkyEnvironment } from "./Environment";
 import { Island } from "./Island";
 import { CHEST_POSITIONS, CHEST_ROTATIONS, effectLevel, type EffectLevel } from "./layout";
 import { Paths } from "./Paths";
+import { Rain, weatherLook } from "./Weather";
 import { HtmlLayerContext } from "./SceneHtml";
 
 export interface IslandSceneProps {
   probs: readonly number[];
   arms: readonly ArmStats[];
-  turn: number;
+  /** Current weather on the weather island (null on the classic island). */
+  weather: number | null;
   showTrueProbs: boolean;
   pending: { id: number; arm: number; mode: DecisionMode } | null;
   lastEvent: { id: number; arm: number; reward: 0 | 1; mode: DecisionMode } | null;
@@ -79,18 +81,20 @@ function ResponsiveCamera() {
 }
 
 function SceneContents(props: IslandSceneProps) {
-  const { arms, turn, dark, pending, lastEvent, turnMs } = props;
-  const shares = arms.map((a) => (turn > 0 ? a.pulls / turn : 0));
+  const { arms, dark, pending, lastEvent, turnMs, weather } = props;
+  const total = arms.reduce((sum, a) => sum + a.pulls, 0);
+  const shares = arms.map((a) => (total > 0 ? a.pulls / total : 0));
+  const look = weatherLook(weather, dark);
 
   return (
     <>
-      <fog attach="fog" args={[dark ? "#3c2f6e" : "#ffe6f2", 24, 52]} />
-      <hemisphereLight args={[dark ? "#7a7fe0" : "#eaf6ff", dark ? "#2a2250" : "#d9c2ff", dark ? 0.8 : 1.3]} />
+      <fog attach="fog" args={[look.fog, 24, 52]} />
+      <hemisphereLight args={[dark ? "#7a7fe0" : "#eaf6ff", dark ? "#2a2250" : "#d9c2ff", (dark ? 0.8 : 1.3) * look.hemiMul]} />
       <ambientLight intensity={dark ? 0.18 : 0.25} />
       <directionalLight
         position={[5, 10, 6]}
-        color={dark ? "#c3c8ff" : "#fff6e8"}
-        intensity={dark ? 1.1 : 2.1}
+        color={look.sunColor}
+        intensity={(dark ? 1.1 : 2.1) * look.sunMul}
         castShadow
         shadow-mapSize={[2048, 2048]}
         shadow-camera-left={-7}
@@ -104,7 +108,8 @@ function SceneContents(props: IslandSceneProps) {
         shadow-radius={5}
       />
 
-      <SkyEnvironment dark={dark} />
+      <SkyEnvironment dark={dark} cloudColor={look.cloud} />
+      <Rain active={weather === 1} />
       <Island dark={dark} />
       <Paths shares={shares} dark={dark} />
 
