@@ -1,5 +1,5 @@
 import type { AlgorithmId, Decision } from "./bandits/types.ts";
-import { formatPercent } from "./island.ts";
+import { WEATHERS, formatPercent } from "./island.ts";
 
 export interface AlgorithmInfo {
   id: AlgorithmId;
@@ -104,4 +104,12 @@ export function explainDecision(decision: Decision, names: readonly string[]): s
       return `それぞれの宝箱について「本当はどれくらい当たりやすいか」をランダムに想像し、今回は${name}（${sample}）が最も有望だと判断しました。成績トップではなくても、まだ可能性がある箱を試す「探索」です。`;
     }
   }
+}
+
+/** Prefix for the weather island: what the weather is and whether Pico uses it. */
+export function explainContext(context: number, aware: boolean): string {
+  const w = WEATHERS[context].name;
+  return aware
+    ? `今日は${w}。${w}の日の記録だけを見て考えるね。`
+    : `今日は${w}。でも天気は気にせず、全部の記録をまとめて考えるね。`;
 }

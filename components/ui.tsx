@@ -255,3 +255,80 @@ export function Note({ text }: { text: string }) {
     </span>
   );
 }
+
+/** Weather icons for the weather island (0 = 晴れ, 1 = 雨, 2 = くもり). */
+export function WeatherGlyph({ context, size = 22 }: { context: number; size?: number }) {
+  const common = { width: size, height: size, viewBox: "0 0 24 24", "aria-hidden": true } as const;
+  if (context === 0)
+    return (
+      <svg {...common}>
+        {Array.from({ length: 8 }, (_, i) => {
+          const a = (i / 8) * Math.PI * 2;
+          return (
+            <line key={i} x1={12 + Math.cos(a) * 7.5} y1={12 + Math.sin(a) * 7.5} x2={12 + Math.cos(a) * 10.5} y2={12 + Math.sin(a) * 10.5} stroke="#ffb81c" strokeWidth="2.2" strokeLinecap="round" />
+          );
+        })}
+        <circle cx="12" cy="12" r="5.5" fill="#ffd84d" stroke={LINE} strokeWidth="1.8" />
+      </svg>
+    );
+  const cloud = (
+    <path
+      d="M7 17 a4 4 0 0 1 0.4 -8 a5 5 0 0 1 9.4 1 a3.6 3.6 0 0 1 0.2 7 z"
+      fill={context === 1 ? "#dff1ff" : "#ffffff"}
+      stroke={LINE}
+      strokeWidth="1.8"
+      strokeLinejoin="round"
+    />
+  );
+  if (context === 1)
+    return (
+      <svg {...common}>
+        <g transform="translate(0 -3)">{cloud}</g>
+        {[8, 12, 16].map((x) => (
+          <path key={x} d={`M${x} 17.5 l-1.2 3.2`} stroke="#4db5ff" strokeWidth="2.2" strokeLinecap="round" />
+        ))}
+      </svg>
+    );
+  return (
+    <svg {...common}>
+      <circle cx="16.5" cy="8" r="3.4" fill="#ffd84d" stroke={LINE} strokeWidth="1.6" />
+      {cloud}
+    </svg>
+  );
+}
+
+/** Game-style mode select tabs. */
+export function ModeTabs<T extends string>({
+  value,
+  onChange,
+  options,
+}: {
+  value: T;
+  onChange: (v: T) => void;
+  options: { value: T; label: ReactNode; badge?: string }[];
+}) {
+  return (
+    <div className="inline-flex gap-2" role="tablist" aria-label="島をえらぶ">
+      {options.map((o) => {
+        const active = o.value === value;
+        return (
+          <button
+            key={o.value}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(o.value)}
+            className={`candy relative px-3.5 py-1.5 text-[12.5px] sm:px-5 sm:py-2 sm:text-[14px] ${active ? "candy--sun" : "candy--white"}`}
+          >
+            {o.label}
+            {o.badge && (
+              <span className="absolute -top-2.5 -right-2 rounded-full border-2 border-line bg-pink px-1.5 text-[10px] leading-4 text-white [text-shadow:none]">
+                {o.badge}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}

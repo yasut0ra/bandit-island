@@ -6,16 +6,19 @@ import {
   SeededRng,
   cloneSimulation,
   createSimulation,
+  drawContext,
   drawReward,
+  observedArms,
   randomSeed,
   recordPullInPlace,
   runTurns,
   type AlgorithmId,
+  type BanditEnvironment,
   type Decision,
   type SimulationState,
 } from "@/lib/bandits/index.ts";
-import { ALGORITHM_INFO, explainDecision } from "@/lib/explain.ts";
-import { CHEST_NAMES, DEFAULT_PROBS, shuffledProbs } from "@/lib/island.ts";
+import { ALGORITHM_INFO, explainContext, explainDecision } from "@/lib/explain.ts";
+import { CHEST_NAMES, islandEnv, type IslandMode } from "@/lib/island.ts";
 
 export interface SpeedOption {
   label: string;
@@ -43,6 +46,9 @@ export const MOVE_FRACTION = 0.42;
 export interface TurnEvent {
   id: number;
   turn: number;
+  /** Context (weather) of this turn. */
+  context: number;
+  aware: boolean;
   arm: number;
   reward: 0 | 1;
   regret: number;
@@ -53,6 +59,8 @@ export interface TurnEvent {
 
 export interface PendingTurn {
   id: number;
+  context: number;
+  aware: boolean;
   algorithm: AlgorithmId;
   decision: Decision;
   reason: string;
@@ -65,8 +73,11 @@ export interface Notice {
 }
 
 export interface BanditState {
+  mode: IslandMode;
   sim: SimulationState;
   algorithm: AlgorithmId;
+  /** Whether the learner reads the context (weather). Irrelevant on the classic island. */
+  contextAware: boolean;
   epsilon: number;
   /** PRNG state (uint32) so the reducer stays pure. */
   seed: number;
@@ -83,14 +94,19 @@ type Action =
   | { type: "reset"; seed: number }
   | { type: "newIsland"; seed: number }
   | { type: "setAlgorithm"; algorithm: AlgorithmId }
-  | { type: "setEpsilon"; epsilon: number };
+  | { type: "setEpsilon"; epsilon: number }
+  | { type: "setMode"; mode: IslandMode; seed: number }
+  | { type: "setContextAware"; aware: boolean };
 
-function initialState(probs: readonly number[], seed: number, algorithm: AlgorithmId, epsilon: number): BanditState {
+type Settings = Pick<BanditState, "mode" | "algorithm" | "epsilon" | "contextAware">;
+
+function initialState(env: BanditEnvironment, seed: number, settings: Settings): BanditState {
+  const rng = new SeededRng(seed);
+  const sim = createSimulation(env, drawContext(env, rng));
   return {
-    sim: createSimulation(probs),
-    algorithm,
-    epsilon,
-    seed,
+    ...settings,
+    sim,
+    seed: rng.state,
     pending: null,
     lastEvent: null,
     notice: null,
@@ -98,14 +114,28 @@ function initialState(probs: readonly number[], seed: number, algorithm: Algorit
   };
 }
 
+const settingsOf = (s: BanditState): Settings => ({
+  mode: s.mode,
+  algorithm: s.algorithm,
+  epsilon: s.epsilon,
+  contextAware: s.contextAware,
+});
+
+/** Japanese reason text, prefixed with the weather on the weather island. */
+function reasonFor(state: BanditState, decision: Decision, context: number): string {
+  const body = explainDecision(decision, CHEST_NAMES);
+  return state.mode === "weather" ? `${explainContext(context, state.contextAware)}${body}` : body;
+}
+
 function resolvePending(state: BanditState): BanditState {
   const pending = state.pending;
   if (!pending) return state;
   const rng = new SeededRng(state.seed);
   const arm = pending.decision.arm;
-  const reward = drawReward(state.sim.probs[arm], rng);
+  const reward = drawReward(state.sim.env.probs[pending.context][arm], rng);
   const sim = cloneSimulation(state.sim);
-  const regret = recordPullInPlace(sim, arm, reward, pending.algorithm);
+  const regret = recordPullInPlace(sim, arm, reward, pending.algorithm, pending.aware);
+  sim.context = drawContext(sim.env, rng);
   const event: TurnEvent = { ...pending, turn: sim.turn, arm, reward, regret };
   return {
     ...state,
@@ -122,7 +152,7 @@ function reducer(state: BanditState, action: Action): BanditState {
       if (state.pending || state.sim.turn >= MAX_TURNS) return state;
       const rng = new SeededRng(state.seed);
       const decision = ALGORITHMS[state.algorithm].select({
-        arms: state.sim.arms,
+        arms: observedArms(state.sim, state.contextAware),
         rng,
         params: { epsilon: state.epsilon },
       });
@@ -132,9 +162,11 @@ function reducer(state: BanditState, action: Action): BanditState {
         nextId: state.nextId + 1,
         pending: {
           id: state.nextId,
+          context: state.sim.context,
+          aware: state.contextAware,
           algorithm: state.algorithm,
           decision,
-          reason: explainDecision(decision, CHEST_NAMES),
+          reason: reasonFor(state, decision, state.sim.context),
         },
       };
     }
@@ -154,17 +186,20 @@ function reducer(state: BanditState, action: Action): BanditState {
         { epsilon: base.epsilon },
         rng,
         count,
+        base.contextAware,
       );
       if (!last) return base;
       const event: TurnEvent = {
         id: base.nextId,
         turn: sim.turn,
+        context: last.context,
+        aware: base.contextAware,
         arm: last.decision.arm,
         reward: last.reward,
         regret: last.regret,
         algorithm: base.algorithm,
         decision: last.decision,
-        reason: explainDecision(last.decision, CHEST_NAMES),
+        reason: reasonFor(base, last.decision, last.context),
       };
       return {
         ...base,
@@ -177,13 +212,43 @@ function reducer(state: BanditState, action: Action): BanditState {
     }
 
     case "reset":
-      return initialState(state.sim.probs, action.seed, state.algorithm, state.epsilon);
+      return initialState(state.sim.env, action.seed, settingsOf(state));
 
     case "newIsland": {
-      const next = initialState(shuffledProbs(action.seed), action.seed, state.algorithm, state.epsilon);
+      const next = initialState(islandEnv(state.mode, action.seed), action.seed, settingsOf(state));
       return {
         ...next,
         notice: { id: 0, text: "新しい島に到着。宝箱の当たりやすさが入れ替わりました。" },
+      };
+    }
+
+    case "setMode": {
+      if (action.mode === state.mode) return state;
+      const next = initialState(islandEnv(action.mode), action.seed, { ...settingsOf(state), mode: action.mode });
+      return {
+        ...next,
+        notice: {
+          id: 0,
+          text:
+            action.mode === "weather"
+              ? "天気の島へようこそ！ ここでは天気によって当たりやすい宝箱が変わるよ。"
+              : "ふつうの島に戻ってきました。",
+        },
+      };
+    }
+
+    case "setContextAware": {
+      if (action.aware === state.contextAware) return state;
+      return {
+        ...state,
+        contextAware: action.aware,
+        nextId: state.nextId + 1,
+        notice: {
+          id: state.nextId,
+          text: action.aware
+            ? "ここから天気を見て選ぶよ。天気ごとの記録を分けて使います。"
+            : "ここから天気を気にせず選ぶよ。全部の記録をまとめて使います。",
+        },
       };
     }
 
@@ -208,7 +273,7 @@ function reducer(state: BanditState, action: Action): BanditState {
 
 export function useBanditSimulation() {
   const [state, dispatch] = useReducer(reducer, undefined, () =>
-    initialState(DEFAULT_PROBS, 20260924, "thompson", 0.1),
+    initialState(islandEnv("classic"), 20260924, { mode: "classic", algorithm: "thompson", epsilon: 0.1, contextAware: true }),
   );
   const [playingRequested, setPlaying] = useState(false);
   const [speedIndex, setSpeedIndex] = useState(0);
@@ -273,6 +338,11 @@ export function useBanditSimulation() {
     }, []),
     setAlgorithm: useCallback((algorithm: AlgorithmId) => dispatch({ type: "setAlgorithm", algorithm }), []),
     setEpsilon: useCallback((epsilon: number) => dispatch({ type: "setEpsilon", epsilon }), []),
+    setMode: useCallback((mode: IslandMode) => {
+      setPlaying(false);
+      dispatch({ type: "setMode", mode, seed: randomSeed() });
+    }, []),
+    setContextAware: useCallback((aware: boolean) => dispatch({ type: "setContextAware", aware }), []),
   };
 }
 

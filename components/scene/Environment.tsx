@@ -6,8 +6,7 @@ import { useRef } from "react";
 import * as THREE from "three";
 import { INK, Toon } from "./materials";
 
-function Cloud({ position, scale = 1, dark }: { position: [number, number, number]; scale?: number; dark: boolean }) {
-  const color = dark ? "#575c9e" : "#ffffff";
+function Cloud({ position, scale = 1, dark, color }: { position: [number, number, number]; scale?: number; dark: boolean; color: string }) {
   return (
     <group position={position} scale={scale}>
       {[
@@ -47,7 +46,7 @@ function MiniIsland({ position, scale = 1 }: { position: [number, number, number
   );
 }
 
-export function SkyEnvironment({ dark }: { dark: boolean }) {
+export function SkyEnvironment({ dark, cloudColor }: { dark: boolean; cloudColor: string }) {
   const clouds = useRef<THREE.Group>(null);
   useFrame((_, delta) => {
     if (clouds.current) clouds.current.rotation.y += delta * 0.015;
@@ -56,13 +55,13 @@ export function SkyEnvironment({ dark }: { dark: boolean }) {
   return (
     <>
       <group ref={clouds}>
-        <Cloud position={[-9, 1.8, -6]} scale={1.3} dark={dark} />
-        <Cloud position={[8.5, 2.6, -7]} scale={1.1} dark={dark} />
-        <Cloud position={[10, -2.5, 2]} scale={1.5} dark={dark} />
-        <Cloud position={[-10.5, -3, 3]} scale={1.6} dark={dark} />
-        <Cloud position={[2, -4.5, -9]} scale={1.8} dark={dark} />
-        <Cloud position={[-4, 3.8, -11]} scale={1.2} dark={dark} />
-        <Cloud position={[5, -5, 6]} scale={1.4} dark={dark} />
+        <Cloud position={[-9, 1.8, -6]} scale={1.3} dark={dark} color={cloudColor} />
+        <Cloud position={[8.5, 2.6, -7]} scale={1.1} dark={dark} color={cloudColor} />
+        <Cloud position={[10, -2.5, 2]} scale={1.5} dark={dark} color={cloudColor} />
+        <Cloud position={[-10.5, -3, 3]} scale={1.6} dark={dark} color={cloudColor} />
+        <Cloud position={[2, -4.5, -9]} scale={1.8} dark={dark} color={cloudColor} />
+        <Cloud position={[-4, 3.8, -11]} scale={1.2} dark={dark} color={cloudColor} />
+        <Cloud position={[5, -5, 6]} scale={1.4} dark={dark} color={cloudColor} />
       </group>
       <MiniIsland position={[-7.2, -0.8, -2.5]} scale={0.9} />
       <MiniIsland position={[7, 0.6, -3.8]} scale={0.7} />

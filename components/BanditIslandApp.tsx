@@ -4,7 +4,17 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useBanditSimulation } from "@/hooks/useBanditSimulation";
 import { usePreferences } from "@/hooks/usePreferences";
-import { argmaxAll, sampleMean, type AlgorithmId } from "@/lib/bandits/index.ts";
+import {
+  argmaxAll,
+  blindBestRegretRate,
+  isOptimalArm,
+  observedArms,
+  oracleRewardRate,
+  randomRegretRate,
+  sampleMean,
+  type AlgorithmId,
+} from "@/lib/bandits/index.ts";
+import { WEATHERS } from "@/lib/island";
 import { playMiss, playReward, unlockAudio } from "@/lib/sound";
 import { ChestLedger } from "./panels/ChestLedger";
 import { ComparePanel } from "./panels/ComparePanel";
@@ -12,7 +22,7 @@ import { ControlDeck } from "./panels/ControlDeck";
 import { LearnSection } from "./panels/LearnSection";
 import { Logbook } from "./panels/Logbook";
 import { SpeechBubble } from "./panels/SpeechBubble";
-import { CoinGlyph, FlagGlyph } from "./ui";
+import { CoinGlyph, FlagGlyph, ModeTabs, WeatherGlyph } from "./ui";
 
 const IslandScene = dynamic(() => import("./scene/IslandScene"), {
   ssr: false,
@@ -47,21 +57,41 @@ export default function BanditIslandApp() {
   const prefs = usePreferences();
   const [showTrueProbs, setShowTrueProbs] = useState(false);
 
+  const env = sim.env;
+  const weatherMode = state.mode === "weather";
+  // The weather on screen: the turn being played, or the last one until the next decision.
+  const shownContext = pending?.context ?? lastEvent?.context ?? sim.context;
+  // What Pico is looking at right now: this weather's records, or everything pooled.
+  const viewArms = useMemo(
+    () => observedArms({ arms: sim.arms, context: shownContext }, state.contextAware),
+    [sim.arms, shownContext, state.contextAware],
+  );
+
   // Pico's current favourite: highest observed success rate among tried chests (ties → more pulls).
   const estimatedBest = useMemo(() => {
-    if (sim.turn === 0) return null;
-    const means = sim.arms.map((a) => (a.pulls > 0 ? sampleMean(a) : -1));
+    if (viewArms.every((a) => a.pulls === 0)) return null;
+    const means = viewArms.map((a) => (a.pulls > 0 ? sampleMean(a) : -1));
     const leaders = argmaxAll(means);
-    return leaders.reduce((best, i) => (sim.arms[i].pulls > sim.arms[best].pulls ? i : best), leaders[0]);
-  }, [sim.arms, sim.turn]);
+    return leaders.reduce((best, i) => (viewArms[i].pulls > viewArms[best].pulls ? i : best), leaders[0]);
+  }, [viewArms]);
 
   const recentOptimalRate = useMemo(() => {
-    const choices = sim.history.choices;
+    const { choices, contexts } = sim.history;
     if (choices.length === 0) return null;
-    const best = Math.max(...sim.probs);
-    const recent = choices.slice(-100);
-    return recent.filter((arm) => sim.probs[arm] === best).length / recent.length;
-  }, [sim.history.choices, sim.probs]);
+    const from = Math.max(0, choices.length - 100);
+    let hits = 0;
+    for (let t = from; t < choices.length; t++) if (isOptimalArm(env, contexts[t], choices[t])) hits += 1;
+    return hits / (choices.length - from);
+  }, [sim.history, env]);
+
+  const references = useMemo(
+    () => ({
+      idealRate: oracleRewardRate(env),
+      randomRegretRate: randomRegretRate(env),
+      blindRegretRate: weatherMode ? blindBestRegretRate(env) : null,
+    }),
+    [env, weatherMode],
+  );
 
   // Sound effects (only while the animation is slow enough to follow).
   useEffect(() => {
@@ -120,6 +150,17 @@ export default function BanditIslandApp() {
     onStart: notStarted ? start : undefined,
   };
 
+  const modeTabs = (
+    <ModeTabs
+      value={state.mode}
+      onChange={controller.setMode}
+      options={[
+        { value: "classic", label: "ふつうの島" },
+        { value: "weather", label: "天気の島", badge: "NEW" },
+      ]}
+    />
+  );
+
   return (
     <div className="mx-auto max-w-[1240px] px-4 pb-16 sm:px-8">
       <header className="flex flex-wrap items-center justify-between gap-x-8 gap-y-4 pt-7 pb-6 sm:pt-9">
@@ -156,13 +197,16 @@ export default function BanditIslandApp() {
       </header>
 
       <main id="island" className="scroll-mt-4">
+        <div className="mb-4 sm:hidden">{modeTabs}</div>
         {/* The island: the hero of the page */}
         <div className="stage-frame p-2 sm:p-2.5">
-          <div className="stage relative h-[50vh] max-h-[720px] min-h-[380px] overflow-hidden rounded-[26px] sm:h-[calc(100svh-330px)] sm:min-h-[500px]">
+          <div
+            data-weather={weatherMode ? WEATHERS[shownContext].id : undefined}
+            className="stage relative h-[50vh] max-h-[720px] min-h-[380px] overflow-hidden rounded-[26px] sm:h-[calc(100svh-330px)] sm:min-h-[500px]">
             <IslandScene
-              probs={sim.probs}
-              arms={sim.arms}
-              turn={sim.turn}
+              probs={env.probs[shownContext]}
+              arms={viewArms}
+              weather={weatherMode ? shownContext : null}
               showTrueProbs={showTrueProbs}
               pending={scenePending}
               lastEvent={sceneLast}
@@ -186,8 +230,19 @@ export default function BanditIslandApp() {
                 </span>
                 <span className="f-num text-[22px] leading-none text-ink">{sim.totalReward.toLocaleString()}</span>
               </div>
+              {weatherMode && (
+                <div key={shownContext} className="counter animate-pop-in">
+                  <span className="counter__icon" style={{ background: WEATHERS[shownContext].color }}>
+                    <WeatherGlyph context={shownContext} />
+                  </span>
+                  <span className="text-[11px] font-extrabold text-ink-2">今日は</span>
+                  <span className="f-pop text-[17px] leading-none text-ink">{WEATHERS[shownContext].name}</span>
+                </div>
+              )}
             </div>
-            <p className="on-bg-text pointer-events-none absolute top-5 right-6 z-20 hidden text-[12px] font-extrabold sm:block">
+            {/* map select */}
+            <div className="absolute top-5 right-5 z-20 hidden sm:block">{modeTabs}</div>
+            <p className="on-bg-text pointer-events-none absolute right-6 bottom-12 z-20 hidden text-[12px] font-extrabold lg:block">
               ドラッグで島がまわるよ
             </p>
 
@@ -207,8 +262,9 @@ export default function BanditIslandApp() {
 
         <div className="mt-16 sm:mt-20">
           <ChestLedger
-            arms={sim.arms}
-            probs={sim.probs}
+            arms={viewArms}
+            probs={env.probs[shownContext]}
+            weather={weatherMode ? { arms: sim.arms, probs: env.probs, current: shownContext, aware: state.contextAware } : null}
             algorithm={state.algorithm}
             showTrueProbs={showTrueProbs}
             onShowTrueProbs={setShowTrueProbs}
@@ -230,17 +286,25 @@ export default function BanditIslandApp() {
             cumReward={sim.history.cumReward}
             cumRegret={sim.history.cumRegret}
             algorithms={sim.history.algorithms}
-            probs={sim.probs}
+            aware={weatherMode ? sim.history.aware : null}
+            contexts={weatherMode ? sim.history.contexts : null}
+            references={references}
             dark={prefs.dark}
           />
         </div>
 
         <div className="mt-24">
-          <LearnSection onTry={tryAlgorithm} />
+          <LearnSection
+            onTry={tryAlgorithm}
+            onWeatherMode={() => {
+              controller.setMode("weather");
+              document.getElementById("island")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+          />
         </div>
 
         <div className="mt-24">
-          <ComparePanel probs={sim.probs} epsilon={state.epsilon} />
+          <ComparePanel key={state.mode} env={env} mode={state.mode} epsilon={state.epsilon} />
         </div>
       </main>
 

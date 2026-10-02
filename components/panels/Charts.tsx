@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AlgorithmId } from "@/lib/bandits/types";
 import { ALGORITHM_INFO } from "@/lib/explain";
-import { CHESTS, chestColor, formatPercent } from "@/lib/island";
+import { CHESTS, WEATHERS, chestColor, formatPercent } from "@/lib/island";
+import { WeatherGlyph } from "../ui";
 
 function useElementWidth<T extends HTMLElement>() {
   const ref = useRef<T>(null);
@@ -184,35 +185,52 @@ export function sampleTurns(length: number): number[] {
   return Array.from({ length: MAX_POINTS }, (_, i) => Math.round(((i + 1) / MAX_POINTS) * length));
 }
 
+export interface ChartReferences {
+  /** Expected reward per turn of an oracle that always picks the best chest for the weather. */
+  idealRate: number;
+  /** Expected regret per turn of Random. */
+  randomRegretRate: number;
+  /** Expected regret per turn of the best weather-blind policy (weather island only). */
+  blindRegretRate: number | null;
+}
+
 interface HistoryChartsProps {
   cumReward: number[];
   cumRegret: number[];
   algorithms: AlgorithmId[];
-  probs: readonly number[];
+  /** Weather-awareness per turn on the weather island (null on the classic island). */
+  aware: boolean[] | null;
+  references: ChartReferences;
 }
 
-export function HistoryCharts({ cumReward, cumRegret, algorithms, probs }: HistoryChartsProps) {
+export function HistoryCharts({ cumReward, cumRegret, algorithms, aware, references }: HistoryChartsProps) {
   const length = cumReward.length;
   const turns = useMemo(() => sampleTurns(length), [length]);
-  const best = Math.max(...probs);
-  const meanP = probs.reduce((a, b) => a + b, 0) / probs.length;
 
+  // Mark every turn where the explorer changed or started/stopped reading the weather.
   const markers = useMemo(() => {
     const list: { turn: number; label: string }[] = [];
     for (let i = 1; i < algorithms.length; i++) {
-      if (algorithms[i] !== algorithms[i - 1]) list.push({ turn: i, label: `→ ${ALGORITHM_INFO[algorithms[i]].name}` });
+      const parts: string[] = [];
+      if (algorithms[i] !== algorithms[i - 1]) parts.push(ALGORITHM_INFO[algorithms[i]].name);
+      if (aware && aware[i] !== aware[i - 1]) parts.push(aware[i] ? "天気を見る" : "天気を見ない");
+      if (parts.length > 0) list.push({ turn: i, label: `→ ${parts.join("・")}` });
     }
     return list;
-  }, [algorithms]);
+  }, [algorithms, aware]);
 
   const rewardSeries: LineSeries[] = [
     { id: "reward", label: "ピコ", color: "var(--reward)", values: turns.map((t) => cumReward[t - 1]) },
-    { id: "ideal", label: "いつも最良の箱なら", color: "var(--ink-3)", values: turns.map((t) => t * best), dashed: true },
+    { id: "ideal", label: "いつも最良の箱なら", color: "var(--ink-3)", values: turns.map((t) => t * references.idealRate), dashed: true },
   ];
   const regretSeries: LineSeries[] = [
     { id: "regret", label: "ピコ", color: "var(--regret)", values: turns.map((t) => cumRegret[t - 1]) },
-    { id: "random", label: "Random なら", color: "var(--ink-3)", values: turns.map((t) => t * (best - meanP)), dashed: true },
+    { id: "random", label: "Random なら", color: "var(--ink-3)", values: turns.map((t) => t * references.randomRegretRate), dashed: true },
   ];
+  if (references.blindRegretRate !== null) {
+    const rate = references.blindRegretRate;
+    regretSeries.push({ id: "blind", label: "天気を見ない限界", color: "var(--sky)", values: turns.map((t) => t * rate), dashed: true });
+  }
 
   return (
     <div className="grid gap-8 md:grid-cols-2">
@@ -236,15 +254,22 @@ export function HistoryCharts({ cumReward, cumRegret, algorithms, probs }: Histo
   );
 }
 
-/**
- * Stacked strip of which chest was chosen over time. Mixed colours on the left
- * (exploration) turning into one dominant colour on the right (exploitation)
- * is the core picture of a bandit learning.
- */
-export function ChoiceTimeline({ choices, dark }: { choices: number[]; dark: boolean }) {
+/** One stacked strip: each bar is a slice of time, coloured by which chests were chosen. */
+function TimelineStrip({
+  choices,
+  height,
+  dark,
+  emptyText,
+  rangeLabel,
+}: {
+  choices: number[];
+  height: number;
+  dark: boolean;
+  emptyText: string;
+  rangeLabel: (from: number, to: number) => string;
+}) {
   const { ref, width } = useElementWidth<HTMLDivElement>();
   const [hover, setHover] = useState<number | null>(null);
-  const height = 76;
   const n = choices.length;
   const maxBins = Math.max(1, Math.floor(width / 9));
   const binCount = Math.min(n, maxBins, 80);
@@ -265,9 +290,78 @@ export function ChoiceTimeline({ choices, dark }: { choices: number[]; dark: boo
   const barW = binCount > 0 ? width / binCount : 0;
 
   return (
+    <div ref={ref} className="relative min-w-0 flex-1">
+      {width > 0 && (
+        <svg width={width} height={height} role="img" aria-label="選んだ宝箱の割合の時間変化" className="block" onPointerLeave={() => setHover(null)}>
+          {n === 0 && (
+            <text x={width / 2} y={height / 2 + 4} textAnchor="middle" fontSize="11" fill="var(--ink-3)">
+              {emptyText}
+            </text>
+          )}
+          {bins.map((bin, b) => {
+            const total = bin.to - bin.from || 1;
+            let acc = 0;
+            return (
+              <g key={b} onPointerEnter={() => setHover(b)} opacity={hover === null || hover === b ? 1 : 0.55}>
+                <rect x={b * barW} y={0} width={barW} height={height} fill="transparent" />
+                {bin.counts.map((count, i) => {
+                  if (count === 0) return null;
+                  const h = (count / total) * height;
+                  const rect = (
+                    <rect
+                      key={i}
+                      x={b * barW + gap / 2}
+                      y={acc}
+                      width={Math.max(1, barW - gap)}
+                      height={Math.max(0, h - 1)}
+                      fill={chestColor(i, dark)}
+                      rx={barW > 6 ? 3 : 0}
+                    />
+                  );
+                  acc += h;
+                  return rect;
+                })}
+              </g>
+            );
+          })}
+        </svg>
+      )}
+      {hover !== null && bins[hover] && (
+        <div
+          className="pointer-events-none absolute bottom-full z-10 mb-1 rounded-xl border-2 border-line bg-panel px-2.5 py-1.5 text-[12px] shadow-lg"
+          style={{ left: Math.min(Math.max(0, hover * barW - 40), width - 160) }}
+        >
+          <div className="font-bold text-ink">{rangeLabel(bins[hover].from + 1, bins[hover].to)}</div>
+          {bins[hover].counts.map((count, i) =>
+            count > 0 ? (
+              <div key={i} className="flex items-center gap-1.5 text-ink-2">
+                <span className="inline-block h-2 w-2 rounded-full" style={{ background: chestColor(i, dark) }} />
+                {CHESTS[i].name}: <span className="font-semibold text-ink">{formatPercent(count / (bins[hover].to - bins[hover].from))}</span>
+              </div>
+            ) : null,
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Which chest was chosen over time. Mixed colours on the left (exploration)
+ * turning into one dominant colour on the right (exploitation) is the core
+ * picture of a bandit learning. On the weather island there is one strip per
+ * weather, so each can settle on its own best chest.
+ */
+export function ChoiceTimeline({ choices, contexts, dark }: { choices: number[]; contexts: number[] | null; dark: boolean }) {
+  const perWeather = useMemo(
+    () => (contexts ? WEATHERS.map((_, c) => choices.filter((_, t) => contexts[t] === c)) : null),
+    [choices, contexts],
+  );
+
+  return (
     <div>
       <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="f-pop text-[15px] text-ink">ピコが選んだ宝箱の移り変わり</h3>
+        <h3 className="f-pop text-[15px] text-ink">{perWeather ? "天気ごとに、ピコが選んだ宝箱" : "ピコが選んだ宝箱の移り変わり"}</h3>
         <div className="flex flex-wrap gap-2.5 text-[12px] font-bold text-ink-2">
           {CHESTS.map((c, i) => (
             <span key={c.name} className="flex items-center gap-1">
@@ -277,64 +371,36 @@ export function ChoiceTimeline({ choices, dark }: { choices: number[]; dark: boo
           ))}
         </div>
       </div>
-      <div ref={ref} className="relative">
-        {width > 0 && (
-          <svg width={width} height={height} role="img" aria-label="選んだ宝箱の割合の時間変化" className="block" onPointerLeave={() => setHover(null)}>
-            {n === 0 && (
-              <text x={width / 2} y={height / 2 + 4} textAnchor="middle" fontSize="11" fill="var(--ink-3)">
-                はじめは色が混ざり、学ぶほど1色に近づいていきます
-              </text>
-            )}
-            {bins.map((bin, b) => {
-              const total = bin.to - bin.from || 1;
-              let acc = 0;
-              return (
-                <g key={b} onPointerEnter={() => setHover(b)} opacity={hover === null || hover === b ? 1 : 0.55}>
-                  <rect x={b * barW} y={0} width={barW} height={height} fill="transparent" />
-                  {bin.counts.map((count, i) => {
-                    if (count === 0) return null;
-                    const h = (count / total) * height;
-                    const rect = (
-                      <rect
-                        key={i}
-                        x={b * barW + gap / 2}
-                        y={acc}
-                        width={Math.max(1, barW - gap)}
-                        height={Math.max(0, h - 1)}
-                        fill={chestColor(i, dark)}
-                        rx={barW > 6 ? 3 : 0}
-                      />
-                    );
-                    acc += h;
-                    return rect;
-                  })}
-                </g>
-              );
-            })}
-          </svg>
-        )}
-        {hover !== null && bins[hover] && (
-          <div
-            className="pointer-events-none absolute bottom-full z-10 mb-1 rounded-xl bg-panel px-2.5 py-1.5 text-[12px] shadow-lg border-2 border-line"
-            style={{ left: Math.min(Math.max(0, hover * barW - 40), width - 160) }}
-          >
-            <div className="font-bold text-ink">
-              ターン {bins[hover].from + 1}–{bins[hover].to}
+      {perWeather ? (
+        <div className="space-y-1.5">
+          {perWeather.map((seq, c) => (
+            <div key={WEATHERS[c].id} className="flex items-center gap-2">
+              <span className="flex w-16 shrink-0 items-center gap-1 text-[12px] font-extrabold text-ink-2">
+                <WeatherGlyph context={c} size={20} />
+                {WEATHERS[c].name}
+              </span>
+              <TimelineStrip
+                choices={seq}
+                height={30}
+                dark={dark}
+                emptyText="まだこの天気の日がありません"
+                rangeLabel={(from, to) => `${WEATHERS[c].name}の日 ${from}–${to}回目`}
+              />
             </div>
-            {bins[hover].counts.map((count, i) =>
-              count > 0 ? (
-                <div key={i} className="flex items-center gap-1.5 text-ink-2">
-                  <span className="inline-block h-2 w-2 rounded-full" style={{ background: chestColor(i, dark) }} />
-                  {CHESTS[i].name}: <span className="font-semibold text-ink">{formatPercent(count / (bins[hover].to - bins[hover].from))}</span>
-                </div>
-              ) : null,
-            )}
-          </div>
-        )}
-        <div className="mt-1 flex justify-between text-[12px] font-bold text-ink-2">
-          <span>← はじめ</span>
-          <span>最近 →</span>
+          ))}
         </div>
+      ) : (
+        <TimelineStrip
+          choices={choices}
+          height={76}
+          dark={dark}
+          emptyText="はじめは色が混ざり、学ぶほど1色に近づいていきます"
+          rangeLabel={(from, to) => `ターン ${from}–${to}`}
+        />
+      )}
+      <div className="mt-1 flex justify-between text-[12px] font-bold text-ink-2">
+        <span>← はじめ</span>
+        <span>最近 →</span>
       </div>
     </div>
   );
