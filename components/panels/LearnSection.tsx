@@ -1,8 +1,9 @@
 "use client";
 
 import { ALGORITHM_IDS, type AlgorithmId } from "@/lib/bandits/index.ts";
+import type { IslandMode } from "@/lib/island";
 import { ALGORITHM_INFO } from "@/lib/explain";
-import { AlgoAvatar, KeyGlyph, Ribbon, WeatherGlyph } from "../ui";
+import { AlgoAvatar, KeyGlyph, Ribbon, ThermoGlyph, WeatherGlyph } from "../ui";
 
 const NOTES = [
   {
@@ -54,7 +55,22 @@ const CONTEXT_STEPS = [
   },
 ];
 
-export function LearnSection({ onTry, onWeatherMode }: { onTry: (id: AlgorithmId) => void; onWeatherMode: () => void }) {
+const LINEAR_STEPS = [
+  {
+    title: "状況が多すぎると…",
+    body: "気温は0℃から30℃まで細かく変わります。気温ごとに記録を分けると、1つ1つの記録が少なすぎて学べません。かといって「さむい・ふつう・あつい」に区切ると、区切りの中の違いが見えなくなります。",
+  },
+  {
+    title: "法則を学ぶ（LinUCB）",
+    body: "LinUCB は「当たりやすさ ＝ 切片 ＋ 傾き × 気温」という直線を、宝箱ごとに学びます。20℃の経験が22℃の予測にも役立つので、まだあまり来ていない気温でも予測できます。",
+  },
+  {
+    title: "自信のなさボーナス",
+    body: "データが少ない気温ほど予測の自信がないので、UCB と同じようにボーナスを足して試します。「ピコの頭の中」で、線が本当の線に近づいていく様子を見てみよう。",
+  },
+];
+
+export function LearnSection({ onTry, onMode }: { onTry: (id: AlgorithmId) => void; onMode: (mode: IslandMode) => void }) {
   return (
     <section id="learn" className="scroll-mt-6 space-y-14">
       <div>
@@ -97,7 +113,7 @@ export function LearnSection({ onTry, onWeatherMode }: { onTry: (id: AlgorithmId
 
       <div>
         <Ribbon color="var(--sky)" sub="文脈付きバンディット（Contextual Bandit）は、「状況によって一番が変わる」問題です。">
-          天気の島のひみつ
+          文脈付きバンディットのひみつ
         </Ribbon>
         <div className="panel mt-6 p-5 sm:p-7">
           <div className="flex flex-wrap items-center gap-3">
@@ -106,7 +122,9 @@ export function LearnSection({ onTry, onWeatherMode }: { onTry: (id: AlgorithmId
                 <WeatherGlyph context={c} size={34} />
               </span>
             ))}
-            <p className="f-pop text-[17px] text-ink">はじめの天気の島では、晴れはソラ・雨はミント・くもりはモモが当たりやすい</p>
+            <p className="f-pop text-[17px] text-ink">
+              その1 天気の島：<span className="text-[14px]">はじめは、晴れはソラ・雨はミント・くもりはモモが当たりやすい</span>
+            </p>
           </div>
           <ol className="mt-5 grid gap-4 md:grid-cols-3">
             {CONTEXT_STEPS.map((step, i) => (
@@ -120,10 +138,41 @@ export function LearnSection({ onTry, onWeatherMode }: { onTry: (id: AlgorithmId
             ))}
           </ol>
           <div className="mt-5 flex flex-wrap items-center gap-3">
-            <button type="button" onClick={onWeatherMode} className="candy candy--sky px-6 py-2 text-[14px]">
+            <button type="button" onClick={() => onMode("weather")} className="candy candy--sky px-6 py-2 text-[14px]">
               天気の島で遊ぶ ↑
             </button>
             <span className="text-[13px] font-bold text-ink-2">「天気を見て選ぶ」を切り替えて、後悔グラフの違いを見てみよう。</span>
+          </div>
+        </div>
+
+        <div className="panel mt-5 p-5 sm:p-7">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="rounded-2xl border-[3px] border-line bg-panel-2 p-1.5">
+              <ThermoGlyph value={0.7} size={34} />
+            </span>
+            <span className="rounded-2xl border-[3px] border-line bg-panel-2 p-1.5">
+              <AlgoAvatar id="linucb" size={34} />
+            </span>
+            <p className="f-pop text-[17px] text-ink">
+              その2 気温の島：<span className="text-[14px]">暑いほどソラ、寒いほどミント、ほどほどならモモ</span>
+            </p>
+          </div>
+          <ol className="mt-5 grid gap-4 md:grid-cols-3">
+            {LINEAR_STEPS.map((step, i) => (
+              <li key={step.title} className="panel-soft px-4 py-4">
+                <div className="flex items-center gap-2">
+                  <span className="f-num flex h-7 w-7 items-center justify-center rounded-full border-2 border-line bg-mint text-[15px] text-white">{i + 1}</span>
+                  <h3 className="f-pop text-[15px] text-ink">{step.title}</h3>
+                </div>
+                <p className="mt-2 text-[13.5px] leading-[1.8] font-bold text-ink-2">{step.body}</p>
+              </li>
+            ))}
+          </ol>
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <button type="button" onClick={() => onMode("temperature")} className="candy candy--mint px-6 py-2 text-[14px]">
+              気温の島で遊ぶ ↑
+            </button>
+            <span className="text-[13px] font-bold text-ink-2">Thompson（3段階に区切る）と LinUCB を、VS バトルでも比べてみよう。</span>
           </div>
         </div>
       </div>

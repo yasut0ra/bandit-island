@@ -1,5 +1,5 @@
 import type { AlgorithmId, Decision } from "./bandits/types.ts";
-import { WEATHERS, formatPercent } from "./island.ts";
+import { TEMPERATURE_BANDS, WEATHERS, formatPercent, temperatureBand, temperatureOf, type IslandMode } from "./island.ts";
 
 export interface AlgorithmInfo {
   id: AlgorithmId;
@@ -52,6 +52,16 @@ export const ALGORITHM_INFO: Record<AlgorithmId, AlgorithmInfo> = {
     strength: "実験的にとても強く、探索と活用のバランスが自然",
     weakness: "仕組みを理解するには確率分布のイメージが必要",
   },
+  linucb: {
+    id: "linucb",
+    name: "LinUCB",
+    tagline: "法則を見つける研究者",
+    description:
+      "状況の手がかり（特徴量）と当たりやすさの関係を「直線」で表して学びます。「気温が高いほど当たる」という法則を見つければ、まだ経験していない気温でも予測できます。予測に自信のない箱にはボーナスを足して試します（UCB と同じ考え方）。",
+    analogy: "「暑い日ほどアイスが売れる」と気づいた店長。初めての猛暑日でも、売れ行きを予想できる。",
+    strength: "似た状況から学びを使い回すので、状況の種類が多くても速く学べる",
+    weakness: "関係が直線で表せないと、予測がずれることがある",
+  },
 };
 
 const pct = (v: number) => formatPercent(v);
@@ -92,6 +102,19 @@ export function explainDecision(decision: Decision, names: readonly string[]): s
       return `${name}の推定値（${est}）は一番ではありませんが、試した回数が少ない分ボーナス（+${bonus}）が大きく、スコア ${score} が最大に。まだ十分に試していない宝箱には可能性があります。期待値と不確実性の両方を考えて選びました。`;
     }
 
+    case "linucb": {
+      if (d.estimates.every((e) => Math.abs(e - d.estimates[0]) < 1e-12)) {
+        return `まだ法則が分かりません。どの箱も予測は同じなので、${name}から試して手がかりを集めます。`;
+      }
+      const est = pct(Math.min(1, Math.max(0, d.estimates[decision.arm])));
+      const bonus = num(d.alpha * d.widths[decision.arm]);
+      const score = num(d.scores[decision.arm]);
+      if (decision.mode === "exploit") {
+        return `学んだ法則で予測すると、${name}は今の状況で ${est} と一番高く、自信のなさのボーナス +${bonus} を足したスコア ${score} も最大でした。法則を信じて「活用」します。`;
+      }
+      return `${name}の予測（${est}）は一番ではないけれど、まだ自信がない分のボーナス（+${bonus}）が大きく、スコア ${score} が最大に。法則を確かめるために「探索」します。`;
+    }
+
     case "thompson": {
       const sample = pct(d.samples[decision.arm]);
       const means = d.alphas.map((a, i) => a / (a + d.betas[i]));
@@ -106,10 +129,18 @@ export function explainDecision(decision: Decision, names: readonly string[]): s
   }
 }
 
-/** Prefix for the weather island: what the weather is and whether Pico uses it. */
-export function explainContext(context: number, aware: boolean): string {
-  const w = WEATHERS[context].name;
-  return aware
-    ? `今日は${w}。${w}の日の記録だけを見て考えるね。`
-    : `今日は${w}。でも天気は気にせず、全部の記録をまとめて考えるね。`;
+/** Prefix on contextual islands: what today's situation is and how Pico uses it. */
+export function explainContext(mode: IslandMode, context: number, aware: boolean, algorithm: AlgorithmId): string {
+  if (mode === "weather") {
+    const w = WEATHERS[context].name;
+    if (!aware) return `今日は${w}。でも天気は気にせず、全部の記録をまとめて考えるね。`;
+    return algorithm === "linucb" ? `今日は${w}。天気ごとに学んだ重みで予測するね。` : `今日は${w}。${w}の日の記録だけを見て考えるね。`;
+  }
+  if (mode === "temperature") {
+    const band = TEMPERATURE_BANDS[temperatureBand(context)].name;
+    const head = `今日の気温は${temperatureOf(context)}℃（${band}）。`;
+    if (!aware) return `${head}でも気温は気にせず、全部の記録をまとめて考えるね。`;
+    return algorithm === "linucb" ? `${head}気温と当たりやすさの法則から予測するね。` : `${head}「${band}日」の記録だけを見て考えるね。`;
+  }
+  return "";
 }

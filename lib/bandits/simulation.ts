@@ -1,4 +1,4 @@
-import type { AlgorithmId, AlgorithmParams, ArmStats, BanditAlgorithm, Decision, Rng } from "./types.ts";
+import type { AlgorithmId, AlgorithmParams, ArmStats, BanditAlgorithm, ContextualView, Decision, Rng } from "./types.ts";
 
 /**
  * A (contextual) Bernoulli bandit. Each turn a context is drawn first (e.g. the
@@ -10,10 +10,17 @@ export interface BanditEnvironment {
   probs: number[][];
   /** Chance of each context appearing on a turn (sums to 1). */
   contextWeights: number[];
+  /** Feature vector of each context, used by feature-based learners (LinUCB). */
+  features: number[][];
+  /**
+   * Which records a context-aware *tabular* learner pools together: contexts in the
+   * same group share one table (e.g. temperatures bucketed into cold / mild / hot).
+   */
+  groups: number[];
 }
 
 export function singleContextEnv(probs: readonly number[]): BanditEnvironment {
-  return { probs: [probs.slice()], contextWeights: [1] };
+  return { probs: [probs.slice()], contextWeights: [1], features: [[1]], groups: [0] };
 }
 
 export interface SimulationState {
@@ -79,11 +86,27 @@ export function pooledArms(arms: readonly (readonly ArmStats[])[]): ArmStats[] {
 }
 
 /**
- * What the learner bases its decision on: only this context's records when it
- * is context-aware, or everything pooled together when it ignores the context.
+ * What a tabular learner bases its decision on: the records of this context's group
+ * when it is context-aware, or everything pooled together when it ignores the context.
  */
-export function observedArms(state: Pick<SimulationState, "arms" | "context">, aware: boolean): ArmStats[] {
-  return aware ? state.arms[state.context] : pooledArms(state.arms);
+export function observedArms(state: Pick<SimulationState, "env" | "arms" | "context">, aware: boolean): ArmStats[] {
+  if (!aware) return pooledArms(state.arms);
+  const group = state.env.groups[state.context];
+  return pooledArms(state.arms.filter((_, c) => state.env.groups[c] === group));
+}
+
+/** What a feature-based learner sees. Ignoring the context = a constant feature. */
+export function contextualView(state: Pick<SimulationState, "env" | "arms" | "context">, aware: boolean): ContextualView {
+  return {
+    armsByContext: state.arms,
+    features: aware ? state.env.features : state.env.features.map(() => [1]),
+    context: state.context,
+  };
+}
+
+/** Everything an algorithm's select() needs for the current turn. */
+export function selectionInputs(state: Pick<SimulationState, "env" | "arms" | "context">, aware: boolean) {
+  return { arms: observedArms(state, aware), contextual: contextualView(state, aware) };
 }
 
 export function bestProbability(probs: readonly number[]): number {
@@ -112,6 +135,21 @@ export function blindBestRegretRate(env: BanditEnvironment): number {
   const n = env.probs[0].length;
   const averages = Array.from({ length: n }, (_, a) => env.probs.reduce((s, p, c) => s + env.contextWeights[c] * p[a], 0));
   return oracleRewardRate(env) - Math.max(...averages);
+}
+
+/**
+ * Expected regret per turn of the best policy that only knows each context's *group*
+ * (e.g. "cold / mild / hot") — the ceiling for a context-aware tabular learner.
+ */
+export function groupBestRegretRate(env: BanditEnvironment): number {
+  const n = env.probs[0].length;
+  let reward = 0;
+  for (const g of new Set(env.groups)) {
+    const members = env.groups.flatMap((gg, c) => (gg === g ? [c] : []));
+    const values = Array.from({ length: n }, (_, a) => members.reduce((s, c) => s + env.contextWeights[c] * env.probs[c][a], 0));
+    reward += Math.max(...values);
+  }
+  return oracleRewardRate(env) - reward;
 }
 
 /** Bernoulli draw: 1 with probability p, else 0. */
@@ -181,7 +219,7 @@ export function runTurns(
   let last: TurnResult | null = null;
   for (let i = 0; i < count; i++) {
     const context = next.context;
-    const decision = algorithm.select({ arms: observedArms(next, aware), rng, params });
+    const decision = algorithm.select({ ...selectionInputs(next, aware), rng, params });
     const reward = drawReward(next.env.probs[context][decision.arm], rng);
     const regret = recordPullInPlace(next, decision.arm, reward, algorithm.id, aware);
     next.context = drawContext(next.env, rng);

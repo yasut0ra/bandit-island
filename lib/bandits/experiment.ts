@@ -1,7 +1,10 @@
 import { ALGORITHMS } from "./index.ts";
 import { SeededRng } from "./rng.ts";
-import { bestProbability, createSimulation, drawContext, drawReward, isOptimalArm, observedArms, type BanditEnvironment } from "./simulation.ts";
+import { bestProbability, createSimulation, drawContext, drawReward, isOptimalArm, selectionInputs, type BanditEnvironment } from "./simulation.ts";
 import type { AlgorithmId } from "./types.ts";
+
+/** Default LinUCB exploration width. */
+export const DEFAULT_ALPHA = 1;
 
 export interface ExperimentConfig {
   algorithm: AlgorithmId;
@@ -11,6 +14,8 @@ export interface ExperimentConfig {
   turns: number;
   runs: number;
   epsilon: number;
+  /** LinUCB's α (defaults to DEFAULT_ALPHA). */
+  alpha?: number;
   seed: number;
   /** Number of points kept for the averaged regret curve. */
   samplePoints?: number;
@@ -32,6 +37,7 @@ export interface ExperimentResult {
 /** Headless Monte-Carlo experiment used by Compare Mode and the verification script. */
 export function runExperiment(config: ExperimentConfig): ExperimentResult {
   const { env, contextAware, turns, runs, epsilon, seed } = config;
+  const alpha = config.alpha ?? DEFAULT_ALPHA;
   const algorithm = ALGORITHMS[config.algorithm];
   const samplePoints = Math.min(config.samplePoints ?? 120, turns);
   const turnsAxis = Array.from({ length: samplePoints }, (_, i) => Math.max(1, Math.round(((i + 1) / samplePoints) * turns)));
@@ -47,7 +53,7 @@ export function runExperiment(config: ExperimentConfig): ExperimentResult {
     let point = 0;
     for (let t = 1; t <= turns; t++) {
       const ctx = sim.context;
-      const { arm } = algorithm.select({ arms: observedArms(sim, contextAware), rng, params: { epsilon } });
+      const { arm } = algorithm.select({ ...selectionInputs(sim, contextAware), rng, params: { epsilon, alpha } });
       const reward = drawReward(env.probs[ctx][arm], rng);
       sim.arms[ctx][arm].pulls += 1;
       sim.arms[ctx][arm].successes += reward;

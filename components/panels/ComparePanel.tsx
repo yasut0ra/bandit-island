@@ -21,8 +21,8 @@ interface Contender {
   aware: boolean;
 }
 
-const nameOf = (p: Contender, weather: boolean) =>
-  weather ? `${ALGORITHM_INFO[p.algorithm].name}（天気を${p.aware ? "見る" : "見ない"}）` : ALGORITHM_INFO[p.algorithm].name;
+const nameOf = (p: Contender, word: string | null) =>
+  word ? `${ALGORITHM_INFO[p.algorithm].name}（${word}を${p.aware ? "見る" : "見ない"}）` : ALGORITHM_INFO[p.algorithm].name;
 
 function Fighter({
   side,
@@ -35,7 +35,7 @@ function Fighter({
   side: 0 | 1;
   value: Contender;
   onChange: (p: Contender) => void;
-  weather: boolean;
+  weather: string | null;
   result?: ExperimentResult;
   winner: boolean;
 }) {
@@ -73,7 +73,7 @@ function Fighter({
       {weather && (
         <div className="mt-3">
           <ToggleChip checked={value.aware} onChange={(aware) => onChange({ ...value, aware })}>
-            天気を見る
+            {weather}を見る
           </ToggleChip>
         </div>
       )}
@@ -98,12 +98,16 @@ function Fighter({
 }
 
 /** Compare Mode: headless Monte-Carlo runs of two algorithms on the current island. */
-export function ComparePanel({ env, mode, epsilon }: { env: BanditEnvironment; mode: IslandMode; epsilon: number }) {
-  const weather = mode === "weather";
-  // On the weather island the natural duel is "same explorer, with vs without the weather".
-  const [a, setA] = useState<Contender>({ algorithm: weather ? "thompson" : "epsilonGreedy", aware: !weather });
-  const [b, setB] = useState<Contender>({ algorithm: "thompson", aware: true });
+export function ComparePanel({ env, mode, epsilon, alpha }: { env: BanditEnvironment; mode: IslandMode; epsilon: number; alpha: number }) {
+  const weather = mode !== "classic";
+  // Natural duels: weather island → same explorer with vs without the weather;
+  // temperature island → bucketing (Thompson) vs learning a line (LinUCB).
+  const [a, setA] = useState<Contender>(
+    mode === "temperature" ? { algorithm: "thompson", aware: true } : { algorithm: weather ? "thompson" : "epsilonGreedy", aware: !weather },
+  );
+  const [b, setB] = useState<Contender>({ algorithm: mode === "temperature" ? "linucb" : "thompson", aware: true });
   const [turns, setTurns] = useState(weather ? 2000 : 1000);
+  const word = mode === "temperature" ? "気温" : "天気";
   const [running, setRunning] = useState(false);
   const [results, setResults] = useState<{ a: Contender; b: Contender; r: [ExperimentResult, ExperimentResult] } | null>(null);
 
@@ -112,7 +116,7 @@ export function ComparePanel({ env, mode, epsilon }: { env: BanditEnvironment; m
     // Let the button state paint before the (short) synchronous computation.
     setTimeout(() => {
       const seed = randomSeed();
-      const common = { env, turns, runs: RUNS, epsilon, seed };
+      const common = { env, turns, runs: RUNS, epsilon, alpha, seed };
       setResults({
         a,
         b,
@@ -141,16 +145,18 @@ export function ComparePanel({ env, mode, epsilon }: { env: BanditEnvironment; m
       <Ribbon
         color="var(--pink)"
         sub={
-          weather
-            ? `Compare Mode：天気の島で2人を${RUNS}回ずつ探検させます。おすすめは「同じキャラで、天気を見る vs 見ない」！`
-            : `Compare Mode：この島で2人を${RUNS}回ずつ探検させて、平均の成績をくらべます。`
+          mode === "temperature"
+            ? `Compare Mode：気温の島で2人を${RUNS}回ずつ探検させます。おすすめは「Thompson（3段階に区切る） vs LinUCB（法則を学ぶ）」！`
+            : weather
+              ? `Compare Mode：天気の島で2人を${RUNS}回ずつ探検させます。おすすめは「同じキャラで、天気を見る vs 見ない」！`
+              : `Compare Mode：この島で2人を${RUNS}回ずつ探検させて、平均の成績をくらべます。`
         }
       >
         VS バトル
       </Ribbon>
 
       <div className="mt-8 grid items-center gap-5 md:grid-cols-[1fr_auto_1fr]">
-        <Fighter side={0} value={a} onChange={setA} weather={weather} result={shown?.[0]} winner={winner === 0} />
+        <Fighter side={0} value={a} onChange={setA} weather={weather ? word : null} result={shown?.[0]} winner={winner === 0} />
         <div className="flex flex-col items-center gap-3">
           <div className="f-num flex h-16 w-16 rotate-[-8deg] items-center justify-center rounded-full border-[3px] border-line bg-sun text-[30px] text-white shadow-[0_4px_0_var(--drop)] [-webkit-text-stroke:5px_#2b2c63] [paint-order:stroke_fill]">
             VS
@@ -167,7 +173,7 @@ export function ComparePanel({ env, mode, epsilon }: { env: BanditEnvironment; m
             {running ? "バトル中…" : "バトル開始！"}
           </button>
         </div>
-        <Fighter side={1} value={b} onChange={setB} weather={weather} result={shown?.[1]} winner={winner === 1} />
+        <Fighter side={1} value={b} onChange={setB} weather={weather ? word : null} result={shown?.[1]} winner={winner === 1} />
       </div>
 
       {shown && (
@@ -177,7 +183,7 @@ export function ComparePanel({ env, mode, epsilon }: { env: BanditEnvironment; m
             turns={shown[0].turnsAxis}
             series={shown.map((r, i) => ({
               id: `${i}-${r.algorithm}`,
-              label: `${SIDE[i].label} ${nameOf(picks[i], weather)}`,
+              label: `${SIDE[i].label} ${nameOf(picks[i], weather ? word : null)}`,
               color: SIDE[i].color,
               values: r.regretCurve,
             }))}
@@ -186,8 +192,10 @@ export function ComparePanel({ env, mode, epsilon }: { env: BanditEnvironment; m
           <p className="mt-3 text-[13.5px] leading-relaxed font-bold text-ink-2">
             {winner === null
               ? "ほぼ互角！ 島を変えて、もう一度どうぞ。"
-              : `この島では ${nameOf(picks[winner], weather)} の勝ち！ 後悔が少なく、早く本命にたどり着きました。`}
-            {weather && picks[0].aware !== picks[1].aware && " 天気を見ないと、どんなにかしこくても「平均して一番の箱」までしか届きません。"}
+              : `この島では ${nameOf(picks[winner], weather ? word : null)} の勝ち！ 後悔が少なく、早く本命にたどり着きました。`}
+            {weather && picks[0].aware !== picks[1].aware && ` ${word}を見ないと、どんなにかしこくても「平均して一番の箱」までしか届きません。`}
+            {mode === "temperature" && picks[0].aware && picks[1].aware && (picks[0].algorithm === "linucb") !== (picks[1].algorithm === "linucb") &&
+              " 区切って数える方法は、区切りの中で一番が入れ替わるのを見分けられません。LinUCB は直線の法則でそこも見分けます。"}
             「終盤の正解率」は、最後の1割のターンで一番の箱を選んだ割合です。
           </p>
         </div>

@@ -416,6 +416,19 @@ body::before {
     --stage-bottom: #eee8f6;
   }
 
+  html:not(.dark) .stage[data-weather="cold"] {
+    --stage-top: #a9d6ff;
+    --stage-bottom: #eef6ff;
+  }
+  html:not(.dark) .stage[data-weather="mild"] {
+    --stage-top: #8fd6ff;
+    --stage-bottom: #ffeef4;
+  }
+  html:not(.dark) .stage[data-weather="hot"] {
+    --stage-top: #6cc4ff;
+    --stage-bottom: #ffe1b8;
+  }
+
   /* ---------- 3D labels (drei <Html>) ---------- */
   .chest-label {
     position: relative;

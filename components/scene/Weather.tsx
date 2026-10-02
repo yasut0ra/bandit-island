@@ -14,8 +14,13 @@ function seeded(i: number): number {
   return x - Math.floor(x);
 }
 
-/** Rain streaks for the 雨 weather. Always mounted; fades in and out. */
-export function Rain({ active }: { active: boolean }) {
+/**
+ * Rain streaks or snowflakes. Always mounted (no material churn); fades in and out,
+ * and switches look by kind.
+ */
+export function Precipitation({ kind }: { kind: "rain" | "snow" | null }) {
+  const active = kind !== null;
+  const snow = kind === "snow";
   const mesh = useRef<THREE.InstancedMesh>(null);
   const material = useMemo(
     () => new THREE.MeshBasicMaterial({ color: "#d9efff", transparent: true, opacity: 0, depthWrite: false }),
@@ -36,17 +41,22 @@ export function Rain({ active }: { active: boolean }) {
   useFrame((_, delta) => {
     const m = mesh.current;
     if (!m) return;
-    material.opacity = THREE.MathUtils.damp(material.opacity, active ? 0.55 : 0, 4, delta);
+    material.opacity = THREE.MathUtils.damp(material.opacity, active ? (snow ? 0.9 : 0.55) : 0, 4, delta);
     m.visible = material.opacity > 0.01;
     if (!m.visible) return;
+    const t = performance.now() / 1000;
     drops.forEach((d, i) => {
-      d.y -= d.speed * delta;
+      d.y -= d.speed * delta * (snow ? 0.12 : 1);
       if (d.y < BOTTOM) d.y = TOP;
       // Drops landing on the island stop at its surface.
       const onIsland = Math.hypot(d.x, d.z) < 5.3 && d.y < 0;
-      dummy.position.set(d.x + 0.12 * (d.y / TOP), onIsland ? 0.2 : d.y, d.z);
-      dummy.rotation.set(0, 0, 0.12);
-      dummy.scale.set(1, onIsland ? 0.001 : 1, 1);
+      const sway = snow ? Math.sin(t * 1.3 + i) * 0.25 : 0.12 * (d.y / TOP);
+      dummy.position.set(d.x + sway, onIsland ? 0.2 : d.y, d.z);
+      dummy.rotation.set(0, 0, snow ? t + i : 0.12);
+      // snowflakes: small chunky cubes; rain: thin streaks
+      if (snow) dummy.scale.set(4.5, 0.2, 4.5);
+      else dummy.scale.set(1, 1, 1);
+      if (onIsland) dummy.scale.set(0.001, 0.001, 0.001);
       dummy.updateMatrix();
       m.setMatrixAt(i, dummy.matrix);
     });
@@ -56,7 +66,10 @@ export function Rain({ active }: { active: boolean }) {
   return <instancedMesh ref={mesh} args={[geometry, material, DROPS]} frustumCulled={false} />;
 }
 
+export type Climate = { kind: "weather"; context: number } | { kind: "temperature"; level: number; feature: number };
+
 export interface WeatherLook {
+  precipitation: "rain" | "snow" | null;
   sunMul: number;
   hemiMul: number;
   sunColor: string;
@@ -64,17 +77,32 @@ export interface WeatherLook {
   cloud: string;
 }
 
-/** How each weather tints the light (null = the classic island). */
-export function weatherLook(weather: number | null, dark: boolean): WeatherLook {
+/** How the climate tints the light (null = the classic island). */
+export function climateLook(climate: Climate | null, dark: boolean): WeatherLook {
   const base: WeatherLook = {
+    precipitation: null,
     sunMul: 1,
     hemiMul: 1,
     sunColor: dark ? "#c3c8ff" : "#fff6e8",
     fog: dark ? "#3c2f6e" : "#ffe6f2",
     cloud: dark ? "#575c9e" : "#ffffff",
   };
+  if (climate?.kind === "temperature") {
+    // cold → cool blue light and snow; hot → strong warm sun
+    const t = climate.feature;
+    const cold = new THREE.Color(dark ? "#a9c4ff" : "#d6e8ff");
+    const hot = new THREE.Color(dark ? "#ffd2a8" : "#ffd08a");
+    return {
+      ...base,
+      precipitation: t <= 0.27 ? "snow" : null,
+      sunMul: 0.75 + 0.55 * t,
+      sunColor: `#${cold.lerp(hot, t).getHexString()}`,
+      fog: dark ? base.fog : `#${new THREE.Color("#e3eeff").lerp(new THREE.Color("#ffe7cf"), t).getHexString()}`,
+    };
+  }
+  const weather = climate?.kind === "weather" ? climate.context : null;
   if (weather === 0) return { ...base, sunMul: 1.2, sunColor: dark ? "#d8d2ff" : "#fff1cc", fog: dark ? base.fog : "#fff1d6" };
-  if (weather === 1) return { ...base, sunMul: 0.45, hemiMul: 0.85, fog: dark ? "#2f3060" : "#cfdaee", cloud: dark ? "#4a4e86" : "#c9d1e6" };
+  if (weather === 1) return { ...base, precipitation: "rain", sunMul: 0.45, hemiMul: 0.85, fog: dark ? "#2f3060" : "#cfdaee", cloud: dark ? "#4a4e86" : "#c9d1e6" };
   if (weather === 2) return { ...base, sunMul: 0.6, hemiMul: 0.95, fog: dark ? "#363466" : "#e7e3f2", cloud: dark ? "#525690" : "#e3e1ef" };
   return base;
 }

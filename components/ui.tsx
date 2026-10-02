@@ -142,6 +142,21 @@ export function AlgoAvatar({ id, size = 44 }: { id: AlgorithmId; size?: number }
           <Eyes y={20.5} gap={4.6} />
         </>,
       );
+    case "linucb":
+      return svg(
+        <>
+          <rect x="5" y="7" width="30" height="24" rx="6" fill="#2fb57f" stroke={LINE} strokeWidth="2.4" />
+          <path d="M10 25 L18 20 L30 11" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.85" />
+          <circle cx="13" cy="23" r="1.4" fill="#ffd84d" />
+          <circle cx="22" cy="17" r="1.4" fill="#ffd84d" />
+          <circle cx="27" cy="14.5" r="1.4" fill="#ffd84d" />
+          <path d="M14 31 v4 M26 31 v4" stroke={LINE} strokeWidth="2.2" strokeLinecap="round" />
+          <g transform="translate(0 -1)">
+            <ellipse cx="15.5" cy="14" rx="1.7" ry="2.1" fill="#ffffff" />
+            <ellipse cx="24.5" cy="14" rx="1.7" ry="2.1" fill="#ffffff" />
+          </g>
+        </>,
+      );
     case "thompson":
       return svg(
         <>
@@ -330,5 +345,17 @@ export function ModeTabs<T extends string>({
         );
       })}
     </div>
+  );
+}
+
+/** Thermometer whose fill follows the temperature (0–1). */
+export function ThermoGlyph({ value, size = 22 }: { value: number; size?: number }) {
+  const top = 4 + (1 - value) * 9;
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>
+      <rect x="9.5" y="2.5" width="5" height="14" rx="2.5" fill="#ffffff" stroke={LINE} strokeWidth="1.8" />
+      <rect x="11" y={top} width="2" height={16 - top} fill="#ff6b6b" />
+      <circle cx="12" cy="18" r="4" fill="#ff6b6b" stroke={LINE} strokeWidth="1.8" />
+    </svg>
   );
 }

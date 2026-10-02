@@ -19,6 +19,8 @@ export interface ChestProps {
   rotationY: number;
   pulls: number;
   successes: number;
+  /** What Pico currently believes the success probability is (null = no idea yet). */
+  estimate: number | null;
   /** Share of all turns spent on this chest (0–1). */
   share: number;
   uncertainty: number;
@@ -193,7 +195,7 @@ export function Chest(props: ChestProps) {
     }
   });
 
-  const estimate = pulls > 0 ? successes / pulls : null;
+  const estimate = props.estimate;
 
   return (
     <group position={position} rotation={[0, rotationY, 0]}>

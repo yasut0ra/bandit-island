@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { AlgorithmId } from "@/lib/bandits/types";
 import { ALGORITHM_INFO } from "@/lib/explain";
-import { CHESTS, WEATHERS, chestColor, formatPercent } from "@/lib/island";
-import { WeatherGlyph } from "../ui";
+import { CHESTS, chestColor, formatPercent } from "@/lib/island";
 
-function useElementWidth<T extends HTMLElement>() {
+export function useElementWidth<T extends HTMLElement>() {
   const ref = useRef<T>(null);
   const [width, setWidth] = useState(0);
   useEffect(() => {
@@ -190,8 +189,12 @@ export interface ChartReferences {
   idealRate: number;
   /** Expected regret per turn of Random. */
   randomRegretRate: number;
-  /** Expected regret per turn of the best weather-blind policy (weather island only). */
+  /** Expected regret per turn of the best context-blind policy (contextual islands only). */
   blindRegretRate: number | null;
+  /** Ceiling of a tabular learner that buckets the context (temperature island only). */
+  groupRegretRate: number | null;
+  /** Word for the context, e.g. 天気 / 気温. */
+  contextWord: string;
 }
 
 interface HistoryChartsProps {
@@ -213,11 +216,11 @@ export function HistoryCharts({ cumReward, cumRegret, algorithms, aware, referen
     for (let i = 1; i < algorithms.length; i++) {
       const parts: string[] = [];
       if (algorithms[i] !== algorithms[i - 1]) parts.push(ALGORITHM_INFO[algorithms[i]].name);
-      if (aware && aware[i] !== aware[i - 1]) parts.push(aware[i] ? "天気を見る" : "天気を見ない");
+      if (aware && aware[i] !== aware[i - 1]) parts.push(aware[i] ? `${references.contextWord}を見る` : `${references.contextWord}を見ない`);
       if (parts.length > 0) list.push({ turn: i, label: `→ ${parts.join("・")}` });
     }
     return list;
-  }, [algorithms, aware]);
+  }, [algorithms, aware, references.contextWord]);
 
   const rewardSeries: LineSeries[] = [
     { id: "reward", label: "ピコ", color: "var(--reward)", values: turns.map((t) => cumReward[t - 1]) },
@@ -229,7 +232,11 @@ export function HistoryCharts({ cumReward, cumRegret, algorithms, aware, referen
   ];
   if (references.blindRegretRate !== null) {
     const rate = references.blindRegretRate;
-    regretSeries.push({ id: "blind", label: "天気を見ない限界", color: "var(--sky)", values: turns.map((t) => t * rate), dashed: true });
+    regretSeries.push({ id: "blind", label: `${references.contextWord}を見ない限界`, color: "var(--sky)", values: turns.map((t) => t * rate), dashed: true });
+  }
+  if (references.groupRegretRate !== null) {
+    const rate = references.groupRegretRate;
+    regretSeries.push({ id: "group", label: "3段階に区切った限界", color: "var(--mint)", values: turns.map((t) => t * rate), dashed: true });
   }
 
   return (
@@ -352,16 +359,18 @@ function TimelineStrip({
  * picture of a bandit learning. On the weather island there is one strip per
  * weather, so each can settle on its own best chest.
  */
-export function ChoiceTimeline({ choices, contexts, dark }: { choices: number[]; contexts: number[] | null; dark: boolean }) {
-  const perWeather = useMemo(
-    () => (contexts ? WEATHERS.map((_, c) => choices.filter((_, t) => contexts[t] === c)) : null),
-    [choices, contexts],
-  );
+export interface TimelineRow {
+  key: string;
+  label: ReactNode;
+  /** Chests chosen in this situation, in order. */
+  choices: number[];
+}
 
+export function ChoiceTimeline({ choices, rows, dark }: { choices: number[]; rows: TimelineRow[] | null; dark: boolean }) {
   return (
     <div>
       <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="f-pop text-[15px] text-ink">{perWeather ? "天気ごとに、ピコが選んだ宝箱" : "ピコが選んだ宝箱の移り変わり"}</h3>
+        <h3 className="f-pop text-[15px] text-ink">{rows ? "状況ごとに、ピコが選んだ宝箱" : "ピコが選んだ宝箱の移り変わり"}</h3>
         <div className="flex flex-wrap gap-2.5 text-[12px] font-bold text-ink-2">
           {CHESTS.map((c, i) => (
             <span key={c.name} className="flex items-center gap-1">
@@ -371,20 +380,17 @@ export function ChoiceTimeline({ choices, contexts, dark }: { choices: number[];
           ))}
         </div>
       </div>
-      {perWeather ? (
+      {rows ? (
         <div className="space-y-1.5">
-          {perWeather.map((seq, c) => (
-            <div key={WEATHERS[c].id} className="flex items-center gap-2">
-              <span className="flex w-16 shrink-0 items-center gap-1 text-[12px] font-extrabold text-ink-2">
-                <WeatherGlyph context={c} size={20} />
-                {WEATHERS[c].name}
-              </span>
+          {rows.map((row) => (
+            <div key={row.key} className="flex items-center gap-2">
+              <span className="flex w-20 shrink-0 items-center gap-1 text-[12px] font-extrabold text-ink-2">{row.label}</span>
               <TimelineStrip
-                choices={seq}
+                choices={row.choices}
                 height={30}
                 dark={dark}
-                emptyText="まだこの天気の日がありません"
-                rangeLabel={(from, to) => `${WEATHERS[c].name}の日 ${from}–${to}回目`}
+                emptyText="まだこの状況の日がありません"
+                rangeLabel={(from, to) => `この状況で ${from}–${to}回目`}
               />
             </div>
           ))}
