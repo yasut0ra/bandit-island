@@ -12,26 +12,31 @@ import { ControlDeck } from "./panels/ControlDeck";
 import { LearnSection } from "./panels/LearnSection";
 import { Logbook } from "./panels/Logbook";
 import { SpeechBubble } from "./panels/SpeechBubble";
-import { CoinGlyph } from "./ui";
+import { CoinGlyph, FlagGlyph } from "./ui";
 
 const IslandScene = dynamic(() => import("./scene/IslandScene"), {
   ssr: false,
   loading: () => (
     <div className="flex h-full items-center justify-center">
-      <span className="t-display animate-pulse text-[18px] text-ink-2 italic">島を描いています…</span>
+      <span className="f-pop animate-pulse text-[18px] text-white [text-shadow:0_2px_0_rgba(43,44,99,.35)]">島をつくっています…</span>
     </div>
   ),
 });
 
-function IslandMark() {
+const TITLE = "Bandit Island";
+
+function IconButton({ onClick, label, pressed, children }: { onClick: () => void; label: string; pressed?: boolean; children: React.ReactNode }) {
   return (
-    <svg width="46" height="46" viewBox="0 0 48 48" aria-hidden className="shrink-0">
-      <ellipse cx="24" cy="26" rx="19" ry="6.5" fill="#a3cf7d" stroke="var(--ink)" strokeWidth="1.6" />
-      <path d="M6 27 Q 24 50 42 27" fill="#c98d5a" stroke="var(--ink)" strokeWidth="1.6" strokeLinejoin="round" />
-      <path d="M17 24 h12 v-4 a6 4.5 0 0 0 -12 0 z" fill="#1baf7a" stroke="var(--ink)" strokeWidth="1.4" />
-      <rect x="17" y="21.5" width="12" height="4.5" rx="0.8" fill="#9a6035" stroke="var(--ink)" strokeWidth="1.4" />
-      <path d="M35 22 v-12 M35 10 l6 2.5 -6 2.5" fill="#c07a1e" stroke="var(--ink)" strokeWidth="1.4" strokeLinejoin="round" />
-    </svg>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      aria-pressed={pressed}
+      className="candy candy--white h-11 w-11 text-[18px]"
+    >
+      {children}
+    </button>
   );
 }
 
@@ -117,46 +122,43 @@ export default function BanditIslandApp() {
 
   return (
     <div className="mx-auto max-w-[1240px] px-4 pb-16 sm:px-8">
-      <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4 pt-7 pb-6 sm:pt-9">
+      <header className="flex flex-wrap items-center justify-between gap-x-8 gap-y-4 pt-7 pb-6 sm:pt-9">
         <div>
-          <div className="flex items-center gap-3">
-            <IslandMark />
-            <h1 className="t-display text-[42px] leading-none text-ink italic sm:text-[52px]">Bandit Island</h1>
-          </div>
-          <p className="mt-2.5 text-[15px] leading-relaxed text-ink-2 sm:text-[16px]">
+          <h1 className="logo text-[46px] leading-none sm:text-[64px]" aria-label={TITLE}>
+            {[...TITLE].map((ch, i) => (
+              <span key={i} style={{ "--i": i } as React.CSSProperties} aria-hidden>
+                {ch === " " ? "\u00a0" : ch}
+              </span>
+            ))}
+          </h1>
+          <p className="on-bg-text mt-3 text-[15px] font-extrabold sm:text-[17px]">
             アルゴリズムたちは、どの宝箱が一番当たりやすいのかをどうやって学ぶのでしょう？
           </p>
         </div>
-        <nav className="flex items-center gap-5 text-[14px] text-ink-2">
-          <a href="#learn" className="squiggle text-ink hover:text-exploit">
-            はじめての方へ
+        <nav className="flex items-center gap-3">
+          <a href="#learn" className="candy candy--sun px-4 py-2 text-[13px]">
+            あそびかた
           </a>
-          <button
-            type="button"
-            aria-pressed={prefs.sound}
+          <IconButton
+            label={prefs.sound ? "効果音をオフにする" : "効果音をオンにする"}
+            pressed={prefs.sound}
             onClick={() => {
               unlockAudio();
               prefs.toggleSound();
             }}
-            className="hover:text-ink"
           >
-            効果音 {prefs.sound ? "あり" : "なし"}
-          </button>
-          <button
-            type="button"
-            onClick={prefs.toggleTheme}
-            aria-label={prefs.dark ? "昼の島に切り替え" : "夜の島に切り替え"}
-            className="rounded-full border border-rule px-3 py-1 hover:border-ink-3 hover:text-ink"
-          >
-            {prefs.dark ? "昼の島へ" : "夜の島へ"}
-          </button>
+            {prefs.sound ? "🔊" : "🔇"}
+          </IconButton>
+          <IconButton label={prefs.dark ? "昼の島に切り替え" : "夜の島に切り替え"} onClick={prefs.toggleTheme}>
+            {prefs.dark ? "☀️" : "🌙"}
+          </IconButton>
         </nav>
       </header>
 
       <main id="island" className="scroll-mt-4">
         {/* The island: the hero of the page */}
-        <div className="plate rounded-[28px] p-2 sm:p-2.5">
-          <div className="sky relative h-[50vh] max-h-[720px] min-h-[380px] overflow-hidden rounded-[20px] sm:h-[calc(100svh-290px)] sm:min-h-[520px]">
+        <div className="stage-frame p-2 sm:p-2.5">
+          <div className="stage relative h-[50vh] max-h-[720px] min-h-[380px] overflow-hidden rounded-[26px] sm:h-[calc(100svh-330px)] sm:min-h-[500px]">
             <IslandScene
               probs={sim.probs}
               arms={sim.arms}
@@ -169,22 +171,24 @@ export default function BanditIslandApp() {
               dark={prefs.dark}
             />
 
-            {/* pinned paper tag with the running tally */}
-            <div className="sheet pointer-events-none absolute top-4 left-4 z-20 -rotate-2 rounded-[3px] px-4 pt-3 pb-2.5 sm:top-6 sm:left-6">
-              <span className="tape -top-2.5 left-1/2 -translate-x-1/2 rotate-3" aria-hidden />
-              <div className="flex items-end gap-4">
-                <div>
-                  <div className="text-[11px] tracking-[0.2em] text-ink-2">ターン</div>
-                  <div className="t-num text-[28px] leading-none text-ink">{sim.turn.toLocaleString()}</div>
-                </div>
-                <div className="flex items-center gap-1.5 pb-0.5">
-                  <CoinGlyph size={16} />
-                  <span className="t-num text-[20px] leading-none text-ink">{sim.totalReward.toLocaleString()}</span>
-                </div>
+            {/* game HUD counters */}
+            <div className="pointer-events-none absolute top-3 left-3 z-20 flex flex-wrap gap-2 sm:top-5 sm:left-5">
+              <div className="counter">
+                <span className="counter__icon bg-pink">
+                  <FlagGlyph />
+                </span>
+                <span className="text-[11px] font-extrabold text-ink-2">ターン</span>
+                <span className="f-num text-[22px] leading-none text-ink">{sim.turn.toLocaleString()}</span>
+              </div>
+              <div className="counter">
+                <span className="counter__icon bg-sun">
+                  <CoinGlyph />
+                </span>
+                <span className="f-num text-[22px] leading-none text-ink">{sim.totalReward.toLocaleString()}</span>
               </div>
             </div>
-            <p className="pointer-events-none absolute top-5 right-6 z-20 hidden text-[12px] tracking-wider text-ink-2/80 sm:block">
-              ドラッグで島がまわります
+            <p className="on-bg-text pointer-events-none absolute top-5 right-6 z-20 hidden text-[12px] font-extrabold sm:block">
+              ドラッグで島がまわるよ
             </p>
 
             <SpeechBubble
@@ -231,23 +235,20 @@ export default function BanditIslandApp() {
           />
         </div>
 
-        <div className="mt-28 border-t border-rule pt-20">
+        <div className="mt-24">
           <LearnSection onTry={tryAlgorithm} />
         </div>
 
-        <div className="mt-28 border-t border-rule pt-20">
+        <div className="mt-24">
           <ComparePanel probs={sim.probs} epsilon={state.epsilon} />
         </div>
       </main>
 
-      <footer className="mt-28">
-        <div className="rule-dotted" />
-        <div className="flex flex-wrap items-baseline justify-between gap-4 pt-6 text-[13px] text-ink-2">
-          <p>
-            <span className="t-display text-[16px] text-ink italic">Bandit Island</span> — 宝箱で学ぶマルチアームド・バンディット
-          </p>
-          <p>Space 再生／ひと休み　→ 1歩　R やり直し</p>
-        </div>
+      <footer className="on-bg-text mt-24 flex flex-wrap items-center justify-between gap-4 text-[13px] font-extrabold">
+        <p>
+          <span className="f-num text-[18px]">Bandit Island</span> ・ 宝箱で学ぶマルチアームド・バンディット
+        </p>
+        <p>Space 再生／ストップ ・ → 1歩 ・ R もう一度</p>
       </footer>
     </div>
   );

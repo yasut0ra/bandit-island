@@ -7,7 +7,7 @@ import type { EffectLevel } from "./layout";
 
 const GRAVITY = -9.5;
 const BURST_LIFE = 1.5;
-const GEM_COLORS = ["#8fd3e8", "#f2a6bf", "#b9aee6", "#9fd8a8"];
+const GEM_COLORS = ["#7fe3ff", "#ff9cc6", "#b9a6ff", "#7be08e"];
 
 interface Particle {
   kind: "coin" | "gem" | "star";

@@ -5,49 +5,66 @@ import { ALGORITHM_IDS, randomSeed, type AlgorithmId } from "@/lib/bandits/index
 import { runExperiment, type ExperimentResult } from "@/lib/bandits/experiment.ts";
 import { ALGORITHM_INFO } from "@/lib/explain";
 import { formatPercent } from "@/lib/island";
-import { Heading } from "../ui";
+import { AlgoAvatar, Ribbon } from "../ui";
 import { LineChart } from "./Charts";
 
-/** A: plum ink, B: ochre — the two inks already used throughout the page. */
-const SIDE_COLORS = ["var(--explore)", "var(--exploit)"] as const;
+/** Player colours: A = sky, B = pink. */
+const SIDE = [
+  { color: "var(--sky)", label: "1P" },
+  { color: "var(--pink)", label: "2P" },
+] as const;
 const TURN_OPTIONS = [500, 1000, 2000];
 const RUNS = 100;
 
-function InlineSelect<T extends string | number>({
-  value,
-  onChange,
-  options,
-  label,
-  color,
-}: {
-  value: T;
-  onChange: (v: T) => void;
-  options: { value: T; label: string }[];
-  label: string;
-  color?: string;
-}) {
+function Fighter({ side, value, onChange, result, winner }: { side: 0 | 1; value: AlgorithmId; onChange: (id: AlgorithmId) => void; result?: ExperimentResult; winner: boolean }) {
+  const { color, label } = SIDE[side];
   return (
-    <select
-      aria-label={label}
-      value={value}
-      onChange={(e) => {
-        const raw = e.target.value;
-        onChange((typeof value === "number" ? Number(raw) : raw) as T);
-      }}
-      className="t-display mx-1 cursor-pointer appearance-none border-b-2 border-dashed bg-transparent px-1 text-center text-[22px] italic focus:outline-none sm:text-[26px]"
-      // Size to the chosen option (a native select would otherwise be as wide as its longest option).
-      style={{
-        color: color ?? "var(--ink)",
-        borderColor: color ?? "var(--ink-3)",
-        width: `${(options.find((o) => o.value === value)?.label.length ?? 4) * 0.56 + 0.9}em`,
-      }}
-    >
-      {options.map((o) => (
-        <option key={o.value} value={o.value} className="bg-sheet text-[15px] text-ink not-italic">
-          {o.label}
-        </option>
-      ))}
-    </select>
+    <div className={`panel relative flex flex-col items-center px-4 pt-6 pb-4 text-center ${winner ? "ring-4 ring-sun" : ""}`}>
+      <span
+        className="f-num absolute -top-4 left-1/2 -translate-x-1/2 rounded-full border-[3px] border-line px-3 text-[16px] text-white shadow-[0_3px_0_var(--drop)]"
+        style={{ background: color, textShadow: "0 2px 0 rgba(43,44,99,.3)" }}
+      >
+        {label}
+      </span>
+      {winner && <span className="badge badge--exploit absolute top-3 right-3">👑 WIN</span>}
+      <div className="rounded-3xl border-[3px] border-line bg-panel-2 p-2">
+        <AlgoAvatar id={value} size={72} />
+      </div>
+      <div className="f-num mt-2 text-[22px] text-ink">{ALGORITHM_INFO[value].name}</div>
+      <div className="mt-2 flex gap-1.5" role="radiogroup" aria-label={`${label} のキャラクター`}>
+        {ALGORITHM_IDS.map((id) => (
+          <button
+            key={id}
+            type="button"
+            role="radio"
+            aria-checked={id === value}
+            aria-label={ALGORITHM_INFO[id].name}
+            onClick={() => onChange(id)}
+            className={`rounded-xl border-[2.5px] p-0.5 transition-transform hover:-translate-y-0.5 ${
+              id === value ? "border-line bg-sun" : "border-transparent opacity-60 hover:opacity-100"
+            }`}
+          >
+            <AlgoAvatar id={id} size={28} />
+          </button>
+        ))}
+      </div>
+      {result && (
+        <dl className="mt-4 grid w-full grid-cols-3 gap-1.5 text-[10.5px] font-extrabold text-ink-2">
+          <div className="panel-soft py-1.5">
+            <dt>合計報酬</dt>
+            <dd className="f-num text-[19px] text-ink">{result.meanTotalReward.toFixed(0)}</dd>
+          </div>
+          <div className="panel-soft py-1.5">
+            <dt>累積後悔</dt>
+            <dd className="f-num text-[19px] text-ink">{result.meanTotalRegret.toFixed(1)}</dd>
+          </div>
+          <div className="panel-soft py-1.5">
+            <dt>終盤の正解率</dt>
+            <dd className="f-num text-[19px] text-ink">{formatPercent(result.lateOptimalRate)}</dd>
+          </div>
+        </dl>
+      )}
+    </div>
   );
 }
 
@@ -58,8 +75,6 @@ export function ComparePanel({ probs, epsilon }: { probs: readonly number[]; eps
   const [turns, setTurns] = useState(1000);
   const [running, setRunning] = useState(false);
   const [results, setResults] = useState<[ExperimentResult, ExperimentResult] | null>(null);
-
-  const algorithmOptions = ALGORITHM_IDS.map((id) => ({ value: id, label: ALGORITHM_INFO[id].name }));
 
   const run = () => {
     setRunning(true);
@@ -72,85 +87,61 @@ export function ComparePanel({ probs, epsilon }: { probs: readonly number[]; eps
     }, 30);
   };
 
+  // Results belong to the pair that was run; picking someone new hides stale numbers.
+  const shown = results && results[0].algorithm === a && results[1].algorithm === b ? results : null;
   const winner =
-    results && Math.abs(results[0].meanTotalRegret - results[1].meanTotalRegret) > 1
-      ? results[0].meanTotalRegret < results[1].meanTotalRegret
+    shown && Math.abs(shown[0].meanTotalRegret - shown[1].meanTotalRegret) > 1
+      ? shown[0].meanTotalRegret < shown[1].meanTotalRegret
         ? 0
         : 1
       : null;
 
   return (
     <section>
-      <Heading kicker="iv.">ふたりを競わせる（Compare Mode）</Heading>
+      <Ribbon color="var(--pink)" sub={`Compare Mode：この島で2人を${RUNS}回ずつ探検させて、平均の成績をくらべます。`}>
+        VS バトル
+      </Ribbon>
 
-      <p className="mt-6 text-[20px] leading-[2.2] text-ink sm:text-[22px]">
-        この島で
-        <InlineSelect label="探検家A" value={a} onChange={setA} options={algorithmOptions} color={SIDE_COLORS[0]} />
-        と
-        <InlineSelect label="探検家B" value={b} onChange={setB} options={algorithmOptions} color={SIDE_COLORS[1]} />
-        に、
-        <InlineSelect
-          label="ターン数"
-          value={turns}
-          onChange={setTurns}
-          options={TURN_OPTIONS.map((t) => ({ value: t, label: t.toLocaleString() }))}
-        />
-        ターンずつ、{RUNS}回探検してもらう。
-        <button
-          type="button"
-          onClick={run}
-          disabled={running}
-          className="brass ml-3 inline-flex -translate-y-1 items-center rounded-full px-5 py-1.5 align-middle text-[15px] font-bold disabled:opacity-60"
-        >
-          {running ? "探検中…" : "くらべる"}
-        </button>
-      </p>
+      <div className="mt-8 grid items-center gap-5 md:grid-cols-[1fr_auto_1fr]">
+        <Fighter side={0} value={a} onChange={setA} result={shown?.[0]} winner={winner === 0} />
+        <div className="flex flex-col items-center gap-3">
+          <div className="f-num flex h-16 w-16 rotate-[-8deg] items-center justify-center rounded-full border-[3px] border-line bg-sun text-[30px] text-white shadow-[0_4px_0_var(--drop)] [-webkit-text-stroke:5px_#2b2c63] [paint-order:stroke_fill]">
+            VS
+          </div>
+          <div className="seg f-num text-[14px]" role="radiogroup" aria-label="ターン数">
+            {TURN_OPTIONS.map((t) => (
+              <button key={t} type="button" role="radio" aria-checked={t === turns} onClick={() => setTurns(t)}>
+                {t.toLocaleString()}
+              </button>
+            ))}
+          </div>
+          <span className="on-bg-text text-[12px] font-extrabold">ターンずつ</span>
+          <button type="button" onClick={run} disabled={running} className="candy px-7 py-2.5 text-[16px]">
+            {running ? "バトル中…" : "バトル開始！"}
+          </button>
+        </div>
+        <Fighter side={1} value={b} onChange={setB} result={shown?.[1]} winner={winner === 1} />
+      </div>
 
-      {results && (
-        <div className="mt-10 grid gap-x-14 gap-y-8 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+      {shown && (
+        <div className="panel mt-6 p-4 sm:p-6">
           <LineChart
-            title="平均の累積後悔（低いほど賢い）"
-            turns={results[0].turnsAxis}
-            series={results.map((r, i) => ({
+            title="平均の累積後悔（低いほどかしこい）"
+            turns={shown[0].turnsAxis}
+            series={shown.map((r, i) => ({
               id: `${i}-${r.algorithm}`,
-              label: `${i === 0 ? "A" : "B"} ${ALGORITHM_INFO[r.algorithm].name}`,
-              color: SIDE_COLORS[i],
+              label: `${SIDE[i].label} ${ALGORITHM_INFO[r.algorithm].name}`,
+              color: SIDE[i].color,
               values: r.regretCurve,
             }))}
             height={200}
           />
-          <div>
-            {results.map((r, i) => (
-              <div key={i} className="border-b border-rule py-4 first:pt-0">
-                <div className="flex items-baseline gap-2">
-                  <span className="t-display text-[20px] italic" style={{ color: SIDE_COLORS[i] }}>
-                    {i === 0 ? "A" : "B"}. {ALGORITHM_INFO[r.algorithm].name}
-                  </span>
-                  {winner === i && <span className="stamp ml-auto text-[12px] text-exploit">勝ち</span>}
-                </div>
-                <dl className="mt-2 grid grid-cols-3 gap-2 text-[12px] text-ink-2">
-                  <div>
-                    <dt>平均報酬の合計</dt>
-                    <dd className="t-num text-[22px] text-ink">{r.meanTotalReward.toFixed(0)}</dd>
-                  </div>
-                  <div>
-                    <dt>平均累積後悔</dt>
-                    <dd className="t-num text-[22px] text-ink">{r.meanTotalRegret.toFixed(1)}</dd>
-                  </div>
-                  <div>
-                    <dt>終盤の正解率</dt>
-                    <dd className="t-num text-[22px] text-ink">{formatPercent(r.lateOptimalRate)}</dd>
-                  </div>
-                </dl>
-              </div>
-            ))}
-            <p className="mt-4 text-[14px] leading-relaxed text-ink-2">
-              {winner === null
-                ? "ほぼ互角でした。島を変えて、もう一度どうぞ。"
-                : `この島では ${ALGORITHM_INFO[results[winner].algorithm].name} のほうが後悔が少なく、早く本命にたどり着きました。`}
-              「終盤の正解率」は、最後の1割のターンで一番の箱を選んだ割合です。
-            </p>
-          </div>
+          <p className="mt-3 text-[13.5px] leading-relaxed font-bold text-ink-2">
+            {winner === null
+              ? "ほぼ互角！ 島を変えて、もう一度どうぞ。"
+              : `この島では ${ALGORITHM_INFO[shown[winner].algorithm].name} の勝ち！ 後悔が少なく、早く本命にたどり着きました。`}
+            「終盤の正解率」は、最後の1割のターンで一番の箱を選んだ割合です。
+          </p>
         </div>
       )}
     </section>

@@ -21,5 +21,5 @@ export function Toon(props: ThreeElements["meshToonMaterial"]) {
   return <meshToonMaterial gradientMap={toonGradient()} {...props} />;
 }
 
-/** Ink colour used for outlines, matching the UI's --ink. */
-export const INK = "#2e2620";
+/** Outline colour, matching the UI's indigo --line. */
+export const INK = "#2b2c63";
