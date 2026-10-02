@@ -519,6 +519,21 @@ body::before {
   }
 }
 
+.confetti {
+  position: absolute;
+  top: -20px;
+  width: 10px;
+  height: 16px;
+  border: 2px solid #2b2c63;
+  border-radius: 3px;
+  animation: confetti-fall linear forwards;
+}
+@keyframes confetti-fall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  85% { opacity: 1; }
+  100% { transform: translateY(105vh) rotate(720deg); opacity: 0; }
+}
+
 @keyframes bob {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-4px); }
@@ -553,6 +568,7 @@ input[type="range"] {
   .logo span,
   .char[aria-checked="true"] .char__face,
   .float-text,
+  .confetti,
   .agent-chip,
   .animate-fade-slide,
   .animate-pop-in {
