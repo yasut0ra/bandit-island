@@ -61,11 +61,22 @@ export default function BanditIslandApp() {
     else if (speed.turnMs >= 1000) playMiss();
   }, [lastEvent?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Browsers only let audio start inside a user gesture: unlock it on any click / key press.
+  useEffect(() => {
+    window.addEventListener("pointerdown", unlockAudio);
+    window.addEventListener("keydown", unlockAudio);
+    return () => {
+      window.removeEventListener("pointerdown", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
+    };
+  }, []);
+
   const { play, pause, step, reset } = controller;
   // Keyboard shortcuts: Space = play/pause, → = step, R = reset.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
+      // The target can be the window or document (nothing focused), which have no closest().
+      const target = e.target instanceof HTMLElement ? e.target : null;
       if (target && (target.closest("input, select, textarea, button, [role=switch]") || target.isContentEditable)) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.code === "Space") {
