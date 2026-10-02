@@ -80,13 +80,13 @@ export function LineChart({ title, series, turns, height = 150, markers = [], fo
   return (
     <div>
       <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-[14px] font-bold text-ink">{title}</h3>
+        <h3 className="f-pop text-[15px] text-ink">{title}</h3>
         {series.length > 1 && (
-          <div className="flex flex-wrap gap-3 text-[12px] text-ink-2">
+          <div className="flex flex-wrap gap-3 text-[12px] font-bold text-ink-2">
             {series.map((s) => (
               <span key={s.id} className="flex items-center gap-1">
                 <svg width="16" height="6" aria-hidden>
-                  <line x1="0" y1="3" x2="16" y2="3" stroke={s.color} strokeWidth="2" strokeDasharray={s.dashed ? "3 3" : undefined} />
+                  <line x1="0" y1="3" x2="16" y2="3" stroke={s.color} strokeWidth="3" strokeDasharray={s.dashed ? "3 3" : undefined} />
                 </svg>
                 {s.label}
               </span>
@@ -107,7 +107,7 @@ export function LineChart({ title, series, turns, height = 150, markers = [], fo
           >
             {ticks.map((t) => (
               <g key={t}>
-                <line x1={PAD.left} x2={width - PAD.right} y1={y(t)} y2={y(t)} stroke="var(--rule)" strokeWidth="1" />
+                <line x1={PAD.left} x2={width - PAD.right} y1={y(t)} y2={y(t)} stroke="var(--panel-3)" strokeWidth="1" />
                 <text x={PAD.left - 6} y={y(t) + 3} textAnchor="end" fontSize="10" fill="var(--ink-3)">
                   {Number.isInteger(t) ? t : t.toFixed(1)}
                 </text>
@@ -133,7 +133,7 @@ export function LineChart({ title, series, turns, height = 150, markers = [], fo
                 d={d}
                 fill="none"
                 stroke={series[i].color}
-                strokeWidth="2"
+                strokeWidth="3"
                 strokeLinejoin="round"
                 strokeLinecap="round"
                 strokeDasharray={series[i].dashed ? "4 4" : undefined}
@@ -144,7 +144,7 @@ export function LineChart({ title, series, turns, height = 150, markers = [], fo
               <g>
                 <line x1={x(turns[hover])} x2={x(turns[hover])} y1={PAD.top} y2={PAD.top + innerH} stroke="var(--ink-3)" strokeWidth="1" />
                 {series.map((s) => (
-                  <circle key={s.id} cx={x(turns[hover])} cy={y(s.values[hover])} r="4" fill={s.color} stroke="var(--sheet)" strokeWidth="2" />
+                  <circle key={s.id} cx={x(turns[hover])} cy={y(s.values[hover])} r="5" fill={s.color} stroke="var(--line)" strokeWidth="2.5" />
                 ))}
               </g>
             )}
@@ -157,7 +157,7 @@ export function LineChart({ title, series, turns, height = 150, markers = [], fo
         )}
         {hover !== null && width > 0 && (
           <div
-            className="pointer-events-none absolute top-1 z-10 rounded-lg bg-sheet px-2.5 py-1.5 text-[12px] shadow-lg ring-1 ring-rule"
+            className="pointer-events-none absolute top-1 z-10 rounded-xl bg-panel px-2.5 py-1.5 text-[12px] shadow-lg border-2 border-line"
             style={{
               left: Math.min(Math.max(0, x(turns[hover]) + 8), width - 150),
             }}
@@ -244,7 +244,7 @@ export function HistoryCharts({ cumReward, cumRegret, algorithms, probs }: Histo
 export function ChoiceTimeline({ choices, dark }: { choices: number[]; dark: boolean }) {
   const { ref, width } = useElementWidth<HTMLDivElement>();
   const [hover, setHover] = useState<number | null>(null);
-  const height = 64;
+  const height = 76;
   const n = choices.length;
   const maxBins = Math.max(1, Math.floor(width / 9));
   const binCount = Math.min(n, maxBins, 80);
@@ -267,11 +267,11 @@ export function ChoiceTimeline({ choices, dark }: { choices: number[]; dark: boo
   return (
     <div>
       <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-[14px] font-bold text-ink">ピコが選んだ宝箱の移り変わり</h3>
-        <div className="flex flex-wrap gap-2.5 text-[12px] text-ink-2">
+        <h3 className="f-pop text-[15px] text-ink">ピコが選んだ宝箱の移り変わり</h3>
+        <div className="flex flex-wrap gap-2.5 text-[12px] font-bold text-ink-2">
           {CHESTS.map((c, i) => (
             <span key={c.name} className="flex items-center gap-1">
-              <span className="inline-block h-2.5 w-2.5 rounded-[3px]" style={{ background: chestColor(i, dark) }} />
+              <span className="inline-block h-3 w-3 rounded-full border-2 border-line" style={{ background: chestColor(i, dark) }} />
               {c.name}
             </span>
           ))}
@@ -302,7 +302,7 @@ export function ChoiceTimeline({ choices, dark }: { choices: number[]; dark: boo
                         width={Math.max(1, barW - gap)}
                         height={Math.max(0, h - 1)}
                         fill={chestColor(i, dark)}
-                        rx={barW > 6 ? 2 : 0}
+                        rx={barW > 6 ? 3 : 0}
                       />
                     );
                     acc += h;
@@ -315,7 +315,7 @@ export function ChoiceTimeline({ choices, dark }: { choices: number[]; dark: boo
         )}
         {hover !== null && bins[hover] && (
           <div
-            className="pointer-events-none absolute bottom-full z-10 mb-1 rounded-lg bg-sheet px-2.5 py-1.5 text-[12px] shadow-lg ring-1 ring-rule"
+            className="pointer-events-none absolute bottom-full z-10 mb-1 rounded-xl bg-panel px-2.5 py-1.5 text-[12px] shadow-lg border-2 border-line"
             style={{ left: Math.min(Math.max(0, hover * barW - 40), width - 160) }}
           >
             <div className="font-bold text-ink">
@@ -331,7 +331,7 @@ export function ChoiceTimeline({ choices, dark }: { choices: number[]; dark: boo
             )}
           </div>
         )}
-        <div className="mt-1 flex justify-between text-[12px] text-ink-2">
+        <div className="mt-1 flex justify-between text-[12px] font-bold text-ink-2">
           <span>← はじめ</span>
           <span>最近 →</span>
         </div>

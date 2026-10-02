@@ -3,7 +3,7 @@
 import type { Notice, PendingTurn, TurnEvent } from "@/hooks/useBanditSimulation";
 import { ALGORITHM_INFO } from "@/lib/explain";
 import { CHESTS, EXPLOIT_COLOR, EXPLORE_COLOR } from "@/lib/island";
-import { PicoFace, Stamp } from "../ui";
+import { ModeBadge, PicoFace } from "../ui";
 
 interface SpeechBubbleProps {
   pending: PendingTurn | null;
@@ -27,51 +27,49 @@ export function SpeechBubble({ pending, lastEvent, notice, turn, animate = true,
   const antenna = current ? (current.decision.mode === "explore" ? EXPLORE_COLOR : EXPLOIT_COLOR) : undefined;
 
   return (
-    <div className={`bubble ${tail ? "bubble--tail" : ""} px-5 pt-4 pb-4 sm:px-6 ${className}`} aria-live="polite">
+    <div className={`bubble ${tail ? "bubble--tail" : ""} px-4 pt-3.5 pb-4 sm:px-5 ${className}`} aria-live="polite">
       <div className="flex items-start gap-3">
-        <div className="-mt-0.5 shrink-0">
+        <div className="shrink-0 rounded-full border-[2.5px] border-line bg-panel-2 p-0.5">
           <PicoFace antenna={antenna} />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-ink-2">
-            <span className="font-bold whitespace-nowrap text-ink">ピコの考えごと</span>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="f-pop text-[15px] whitespace-nowrap text-ink">ピコ</span>
             {current && (
-              <span className="t-num whitespace-nowrap">
+              <span className="rounded-full bg-panel-2 px-2 py-0.5 text-[11px] font-extrabold whitespace-nowrap text-ink-2">
                 {ALGORITHM_INFO[current.algorithm].name} ・ {pending ? turn + 1 : lastEvent?.turn}ターン目
               </span>
             )}
-            {current && <Stamp mode={current.decision.mode} className="ml-auto" />}
+            {current && <ModeBadge mode={current.decision.mode} className="ml-auto" />}
           </div>
 
           {current ? (
             <div key={animate ? current.id : "static"} className={animate ? "animate-fade-slide" : undefined}>
-              <p className="mt-1.5 text-[15px] leading-[1.85] text-ink">{current.reason}</p>
-              <p className="mt-1.5 text-[14px] text-ink-2">
+              <p className="mt-1.5 text-[14.5px] leading-[1.8] font-bold text-ink">{current.reason}</p>
+              <p className="mt-2 text-[14px] font-extrabold">
                 {pending ? (
-                  <>「{chest?.name}」へ歩いていく…</>
+                  <span className="text-ink-2">「{chest?.name}」へ てくてく…</span>
                 ) : lastEvent?.reward === 1 ? (
-                  <>
-                    「{chest?.name}」を開けたら、<span className="font-bold text-reward">当たり！</span>
-                  </>
+                  <span className="rounded-full bg-sun px-2.5 py-0.5 text-[#2b2c63]">「{chest?.name}」を開けたら… あたり！</span>
                 ) : (
-                  <>「{chest?.name}」を開けたら、からっぽ。</>
+                  <span className="text-ink-2">「{chest?.name}」を開けたら… からっぽ。</span>
                 )}
               </p>
             </div>
           ) : (
             <div>
-              <p className="mt-1.5 text-[15px] leading-[1.85] text-ink">
-                こんにちは、ピコです。5つの宝箱には、それぞれ違う当たりやすさが隠れています。
-                どれが一番かはまだ知りません。開けて、試して、少しずつ覚えていきます。
+              <p className="mt-1.5 text-[14.5px] leading-[1.8] font-bold text-ink">
+                こんにちは、ピコだよ！ 5つの宝箱には、それぞれ違う「当たりやすさ」がかくれてるんだ。
+                どれが一番かはまだ知らないから、開けて、試して、覚えていくね。
               </p>
               {onStart && (
-                <button type="button" onClick={onStart} className="brass mt-3 rounded-full px-5 py-2 text-[14px] font-bold">
-                  冒険をはじめる
+                <button type="button" onClick={onStart} className="candy mt-3 px-6 py-2 text-[15px]">
+                  ▶ 冒険スタート！
                 </button>
               )}
             </div>
           )}
-          {showNotice && <p className="mt-2 border-t border-dashed border-rule pt-2 text-[13px] text-ink-2">{notice.text}</p>}
+          {showNotice && <p className="mt-2.5 rounded-xl bg-panel-2 px-3 py-1.5 text-[12.5px] font-bold text-ink-2">{notice.text}</p>}
         </div>
       </div>
     </div>

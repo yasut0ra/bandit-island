@@ -1,22 +1,16 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Zen_Maru_Gothic } from "next/font/google";
+import { Lilita_One, M_PLUS_Rounded_1c, Mochiy_Pop_P_One } from "next/font/google";
 import { THEME_BOOT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  style: ["normal", "italic"],
-  axes: ["SOFT", "WONK", "opsz"],
-  variable: "--font-fraunces",
-});
+/** Chunky game-logo face for the title and numbers. */
+const lilita = Lilita_One({ weight: "400", subsets: ["latin"], variable: "--nf-logo" });
 
-// Japanese glyphs are served in unicode-range chunks, so don't preload the whole family.
-const zenMaru = Zen_Maru_Gothic({
-  weight: ["400", "500", "700"],
-  subsets: ["latin"],
-  preload: false,
-  variable: "--font-zen-maru",
-});
+// Japanese faces are served in unicode-range chunks, so don't preload the whole family.
+/** Cute pop face for headings and buttons. */
+const mochiy = Mochiy_Pop_P_One({ weight: "400", subsets: ["latin"], preload: false, variable: "--nf-pop" });
+/** Rounded face for body text. */
+const mplus = M_PLUS_Rounded_1c({ weight: ["500", "700", "800"], subsets: ["latin"], preload: false, variable: "--nf-body" });
 
 export const metadata: Metadata = {
   title: "Bandit Island — 宝箱で学ぶマルチアームド・バンディット",
@@ -26,14 +20,14 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f2ebdd" },
-    { media: "(prefers-color-scheme: dark)", color: "#161a29" },
+    { media: "(prefers-color-scheme: light)", color: "#86c3ff" },
+    { media: "(prefers-color-scheme: dark)", color: "#1c1d4f" },
   ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ja" className={`${fraunces.variable} ${zenMaru.variable}`} suppressHydrationWarning>
+    <html lang="ja" className={`${lilita.variable} ${mochiy.variable} ${mplus.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
       </head>

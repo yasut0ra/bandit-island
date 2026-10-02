@@ -92,17 +92,17 @@ function Tree({ position, scale = 1, kind = "round" }: { position: [number, numb
           <>
             <mesh position={[0, 0.45, 0]} castShadow>
               <icosahedronGeometry args={[0.62, 0]} />
-              <Toon color="#7fb563" />
+              <Toon color="#6fd27a" />
               <Outlines thickness={0.02} color={INK} />
             </mesh>
             <mesh position={[0.32, 0.25, 0.1]} castShadow>
               <icosahedronGeometry args={[0.38, 0]} />
-              <Toon color="#6aa257" />
+              <Toon color="#5cc070" />
               <Outlines thickness={0.02} color={INK} />
             </mesh>
             <mesh position={[-0.28, 0.3, -0.12]} castShadow>
               <icosahedronGeometry args={[0.34, 0]} />
-              <Toon color="#8cc26b" />
+              <Toon color="#8ce08a" />
               <Outlines thickness={0.02} color={INK} />
             </mesh>
           </>
@@ -111,7 +111,7 @@ function Tree({ position, scale = 1, kind = "round" }: { position: [number, numb
             {[0, 0.42, 0.78].map((y, i) => (
               <mesh key={y} position={[0, y + 0.2, 0]} castShadow>
                 <coneGeometry args={[0.62 - i * 0.16, 0.7, 7]} />
-                <Toon color={i === 1 ? "#4f8f64" : "#5c9d6c"} />
+                <Toon color={i === 1 ? "#3fb07a" : "#4cc48a"} />
                 <Outlines thickness={0.02} color={INK} />
               </mesh>
             ))}
@@ -150,7 +150,7 @@ function Mushroom({ position }: { position: [number, number, number] }) {
   );
 }
 
-const FLOWER_COLORS = ["#f4b8b0", "#f7e2a0", "#fffaf0", "#f4b8b0", "#fffaf0"];
+const FLOWER_COLORS = ["#ff9cc6", "#ffe066", "#ffffff", "#c9b6ff", "#ffffff"];
 
 function Flowers() {
   const flowers = useMemo(() => {
@@ -206,32 +206,32 @@ export function Island({ dark }: { dark: boolean }) {
       {/* grass top */}
       <mesh position={[0, -0.22, 0]} receiveShadow>
         <cylinderGeometry args={[5.4, 5.25, 0.44, 16]} />
-        <Toon color={dark ? "#4f8a5c" : "#a3cf7d"} />
+        <Toon color={dark ? "#3f8f6a" : "#9be27f"} />
       </mesh>
       {/* grass lip */}
       <mesh position={[0, -0.5, 0]}>
         <cylinderGeometry args={[5.3, 5.05, 0.22, 16]} />
-        <Toon color={dark ? "#3f7450" : "#8bbd68"} />
+        <Toon color={dark ? "#327a59" : "#79cc68"} />
       </mesh>
       {/* earth layers */}
       <mesh position={[0, -1.05, 0]}>
         <cylinderGeometry args={[5.05, 4.4, 0.9, 12]} />
-        <Toon color="#c98d5a" />
+        <Toon color="#e8a66e" />
       </mesh>
       <mesh position={[0, -3.1, 0]} rotation={[Math.PI, 0.2, 0]}>
         <coneGeometry args={[4.4, 3.2, 10]} />
-        <Toon color="#a86f45" />
+        <Toon color="#cf8a57" />
       </mesh>
       <mesh position={[1.4, -2.6, 0.8]} rotation={[Math.PI, 0, 0.1]}>
         <coneGeometry args={[1.4, 2.2, 7]} />
-        <Toon color="#94603c" />
+        <Toon color="#bd7a4b" />
       </mesh>
       <mesh position={[-1.8, -2.3, -0.6]} rotation={[Math.PI, 0, -0.1]}>
         <coneGeometry args={[1.2, 1.8, 7]} />
-        <Toon color="#b77b4e" />
+        <Toon color="#d99760" />
       </mesh>
 
-      <Grass color={dark ? "#487f57" : "#86b965"} />
+      <Grass color={dark ? "#3b8763" : "#78d064"} />
       <Flowers />
 
       <Tree position={[-4.1, 0, -1.6]} scale={1.15} />

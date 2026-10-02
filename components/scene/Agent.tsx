@@ -156,7 +156,7 @@ export function Agent({ pending, lastEvent, turnMs }: AgentProps) {
         </mesh>
         {/* body */}
         <RoundedBox args={[0.5, 0.44, 0.4]} radius={0.14} position={[0, 0.38, 0]} castShadow>
-          <Toon color="#f7f1e6" />
+          <Toon color="#ffffff" />
           <Outlines thickness={0.02} color={INK} />
         </RoundedBox>
         <mesh position={[0, 0.4, 0.201]}>
@@ -179,7 +179,7 @@ export function Agent({ pending, lastEvent, turnMs }: AgentProps) {
         {/* head */}
         <group ref={head} position={[0, 0.86, 0]}>
           <RoundedBox args={[0.64, 0.48, 0.5]} radius={0.17} castShadow>
-            <Toon color="#fbf7ee" />
+            <Toon color="#ffffff" />
             <Outlines thickness={0.02} color={INK} />
           </RoundedBox>
           <RoundedBox args={[0.5, 0.3, 0.06]} radius={0.08} position={[0, 0, 0.23]}>
@@ -216,7 +216,7 @@ export function Agent({ pending, lastEvent, turnMs }: AgentProps) {
         {pending && animated ? (
           <div
             key={pending.id}
-            className={`agent-chip stamp ${pending.mode === "explore" ? "agent-chip--explore" : "agent-chip--exploit"}`}
+            className={`agent-chip badge ${pending.mode === "explore" ? "badge--explore" : "badge--exploit"}`}
           >
             {pending.mode === "explore" ? "探索" : "活用"}
           </div>

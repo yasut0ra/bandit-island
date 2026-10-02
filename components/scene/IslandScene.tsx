@@ -84,12 +84,12 @@ function SceneContents(props: IslandSceneProps) {
 
   return (
     <>
-      <fog attach="fog" args={[dark ? "#2b2747" : "#f3e1c6", 22, 48]} />
-      <hemisphereLight args={[dark ? "#6a74b8" : "#e8f0f2", dark ? "#1e2233" : "#c9b48a", dark ? 0.7 : 1.25]} />
+      <fog attach="fog" args={[dark ? "#3c2f6e" : "#ffe6f2", 24, 52]} />
+      <hemisphereLight args={[dark ? "#7a7fe0" : "#eaf6ff", dark ? "#2a2250" : "#d9c2ff", dark ? 0.8 : 1.3]} />
       <ambientLight intensity={dark ? 0.18 : 0.25} />
       <directionalLight
         position={[5, 10, 6]}
-        color={dark ? "#b8c3f0" : "#fff0d6"}
+        color={dark ? "#c3c8ff" : "#fff6e8"}
         intensity={dark ? 1.1 : 2.1}
         castShadow
         shadow-mapSize={[2048, 2048]}

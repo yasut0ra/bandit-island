@@ -35,8 +35,8 @@ export function chestColor(index: number, dark: boolean): string {
   return dark ? CHESTS[index].colorDark : CHESTS[index].color;
 }
 
-export const EXPLORE_COLOR = "#6a58c7";
-export const EXPLOIT_COLOR = "#c07a1e";
+export const EXPLORE_COLOR = "#8a63ff";
+export const EXPLOIT_COLOR = "#ffbf2e";
 
 export function formatPercent(value: number, digits = 0): string {
   return `${(value * 100).toFixed(digits)}%`;

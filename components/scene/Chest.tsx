@@ -9,8 +9,6 @@ import { SceneHtml } from "./SceneHtml";
 import { formatPercent } from "@/lib/island";
 
 const LID_OPEN = -1.95;
-/** Small, fixed tilts so the paper tags look pinned by hand. */
-const LABEL_TILTS = [-4, 2.5, -1.5, 3, -2.5];
 const GOLD = "#f5c542";
 
 export interface ChestProps {
@@ -38,8 +36,8 @@ function UncertaintyMist({ uncertainty }: { uncertainty: number }) {
   const material = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: "#c9bfee",
-        emissive: "#9d8fd8",
+        color: "#cdbfff",
+        emissive: "#a58bff",
         emissiveIntensity: 0.35,
         transparent: true,
         opacity: 0.5,
@@ -256,25 +254,25 @@ export function Chest(props: ChestProps) {
       <SceneHtml position={[0, 1.62, 0]} center zIndexRange={[20, 10]} style={{ pointerEvents: "none" }}>
         <div
           className={`chest-label ${isTarget ? "chest-label--target" : ""}`}
-          style={{ "--chest": color, "--tilt": `${LABEL_TILTS[props.index]}deg` } as React.CSSProperties}
+          style={{ "--chest": color } as React.CSSProperties}
         >
-          <div className="font-bold whitespace-nowrap">
-            {props.name}
-            {isBest && <span className="ml-0.5 text-[#c07a1e]">★</span>}
-          </div>
-          <div className="t-num text-[15px] leading-tight font-semibold whitespace-nowrap">
-            {estimate === null ? "？" : formatPercent(estimate)}
-          </div>
-          <div className="text-[9px] whitespace-nowrap text-[#8a7b68]">{pulls}回</div>
+          <span className="chest-label__dot" />
+          <span className="flex flex-col items-start">
+            <span className="chest-label__name text-[10px] font-extrabold">
+              {props.name}
+              {isBest && <span className="ml-0.5 text-[#e09b0b]">★</span>}
+            </span>
+            <span className="f-num text-[16px] leading-none">{estimate === null ? "？" : formatPercent(estimate)}</span>
+          </span>
           {props.showTrueProb && (
-            <div className="mt-0.5 border-t border-dashed border-[#d8cab2] pt-0.5 text-[10px] font-bold whitespace-nowrap text-[#2e2620]">
-              答え {formatPercent(props.trueProb)}
-            </div>
+            <span className="absolute top-full left-1/2 mt-1 -translate-x-1/2 rounded-full border-2 border-[#2b2c63] bg-[#ffc93c] px-1.5 text-[9px] font-extrabold whitespace-nowrap">
+              こたえ {formatPercent(props.trueProb)}
+            </span>
           )}
           {lastOpen && turnMs >= 1000 && (
-            <div key={lastOpen.id} className={`float-text ${lastOpen.reward ? "float-text--win" : "float-text--miss"}`}>
-              {lastOpen.reward ? "当たり！" : "ハズレ…"}
-            </div>
+            <span key={lastOpen.id} className={`float-text ${lastOpen.reward ? "float-text--win" : "float-text--miss"}`}>
+              {lastOpen.reward ? "あたり！" : "からっぽ…"}
+            </span>
           )}
         </div>
       </SceneHtml>
