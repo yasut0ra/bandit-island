@@ -3,7 +3,7 @@
 import type { AlgorithmId } from "@/lib/bandits/types";
 import { CHESTS, formatPercent } from "@/lib/island";
 import { Note, Ribbon } from "../ui";
-import { ChoiceTimeline, HistoryCharts, type ChartReferences } from "./Charts";
+import { ChoiceTimeline, HistoryCharts, type ChartReferences, type TimelineRow } from "./Charts";
 
 interface LogbookProps {
   turn: number;
@@ -16,8 +16,8 @@ interface LogbookProps {
   cumRegret: number[];
   algorithms: AlgorithmId[];
   aware: boolean[] | null;
-  /** Weather per turn on the weather island (null on the classic island). */
-  contexts: number[] | null;
+  /** Choices split by situation on contextual islands (null on the classic island). */
+  timelineRows: TimelineRow[] | null;
   references: ChartReferences;
   dark: boolean;
 }
@@ -46,7 +46,7 @@ export function Logbook(props: LogbookProps) {
         color="var(--mint)"
         sub={
           props.aware
-            ? "天気の島では、天気を見ないと後悔は青い点線（天気を見ない限界）に沿ってのび続けます。天気を見ると、その線より下に寝ていきます。"
+            ? `${props.references.contextWord}を見ないと、後悔は青い点線（${props.references.contextWord}を見ない限界）に沿ってのび続けます。${props.references.contextWord}を見ると、その線より下に寝ていきます。`
             : "はじめはいろいろな箱を試すので帯の色がまざります。いい箱が分かると色がそろって、後悔の線がねていきます。"
         }
       >
@@ -72,7 +72,7 @@ export function Logbook(props: LogbookProps) {
         </div>
 
         <div className="mt-7 space-y-8">
-          <ChoiceTimeline choices={props.choices} contexts={props.contexts} dark={props.dark} />
+          <ChoiceTimeline choices={props.choices} rows={props.timelineRows} dark={props.dark} />
           <HistoryCharts
             cumReward={props.cumReward}
             cumRegret={props.cumRegret}

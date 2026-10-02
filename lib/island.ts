@@ -39,7 +39,7 @@ export function shuffledProbs(seed: number): number[] {
 
 /* ---------- 天気の島 (contextual bandit) ---------- */
 
-export type IslandMode = "classic" | "weather";
+export type IslandMode = "classic" | "weather" | "temperature";
 
 export interface WeatherInfo {
   id: "sunny" | "rainy" | "cloudy";
@@ -64,13 +64,56 @@ export const WEATHER_PROBS: number[][] = [
   [0.35, 0.4, 0.3, 0.45, 0.75],
 ];
 
+/* ---------- 気温の島 (linear contextual bandit) ---------- */
+
+/** Temperatures are 0, 2, …, 30 ℃ (16 levels), each equally likely. */
+export const TEMPERATURE_LEVELS = 16;
+export const TEMPERATURE_STEP = 2;
+export const temperatureOf = (level: number) => level * TEMPERATURE_STEP;
+/** Feature value: temperature scaled to 0–1. */
+export const temperatureFeature = (level: number) => level / (TEMPERATURE_LEVELS - 1);
+
+/** Buckets a context-aware tabular learner uses: さむい (0–8℃) / ふつう (10–20℃) / あつい (22–30℃). */
+export const TEMPERATURE_BANDS = [
+  { id: "cold", name: "さむい", color: "#7fc4ff" },
+  { id: "mild", name: "ふつう", color: "#7be08e" },
+  { id: "hot", name: "あつい", color: "#ff9a6b" },
+] as const;
+export const temperatureBand = (level: number) => (level <= 4 ? 0 : level <= 10 ? 1 : 2);
+
+/**
+ * True success probability = intercept + slope × (temperature 0–1), per chest.
+ * ソラ loves the heat, ミント the cold, モモ is steady: the best chest changes twice
+ * inside the "ふつう" band, so bucketing hits a floor that a learned line does not.
+ */
+export const TEMPERATURE_LINES: [number, number][] = [
+  [0.05, 0.9],
+  [0.45, -0.1],
+  [0.95, -0.9],
+  [0.25, 0.3],
+  [0.58, -0.04],
+];
+
 /** The hidden environment for each mode; a seed shuffles which chest has which profile. */
 export function islandEnv(mode: IslandMode, seed?: number): BanditEnvironment {
   if (mode === "classic") return singleContextEnv(seed === undefined ? DEFAULT_PROBS : shuffledProbs(seed));
-  const order = seed === undefined ? WEATHER_PROBS[0].map((_, i) => i) : permutation(WEATHER_PROBS[0].length, seed);
+  const n = CHESTS.length;
+  const order = seed === undefined ? Array.from({ length: n }, (_, i) => i) : permutation(n, seed);
+  if (mode === "weather") {
+    return {
+      probs: WEATHER_PROBS.map((row) => order.map((i) => row[i])),
+      contextWeights: WEATHERS.map(() => 1 / WEATHERS.length),
+      // one-hot: a feature-based learner keeps one weight per weather
+      features: WEATHERS.map((_, c) => WEATHERS.map((__, j) => (j === c ? 1 : 0))),
+      groups: WEATHERS.map((_, c) => c),
+    };
+  }
+  const levels = Array.from({ length: TEMPERATURE_LEVELS }, (_, k) => k);
   return {
-    probs: WEATHER_PROBS.map((row) => order.map((i) => row[i])),
-    contextWeights: WEATHERS.map(() => 1 / WEATHERS.length),
+    probs: levels.map((k) => order.map((i) => TEMPERATURE_LINES[i][0] + TEMPERATURE_LINES[i][1] * temperatureFeature(k))),
+    contextWeights: levels.map(() => 1 / TEMPERATURE_LEVELS),
+    features: levels.map((k) => [1, temperatureFeature(k)]),
+    groups: levels.map(temperatureBand),
   };
 }
 

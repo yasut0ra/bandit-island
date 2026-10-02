@@ -4,7 +4,7 @@ import { OrbitControls } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import { uncertainty, type ArmStats, type DecisionMode } from "@/lib/bandits/index.ts";
+import type { Belief, DecisionMode } from "@/lib/bandits/index.ts";
 import { CHESTS, chestColor } from "@/lib/island";
 import { Agent } from "./Agent";
 import { Chest } from "./Chest";
@@ -13,14 +13,15 @@ import { SkyEnvironment } from "./Environment";
 import { Island } from "./Island";
 import { CHEST_POSITIONS, CHEST_ROTATIONS, effectLevel, type EffectLevel } from "./layout";
 import { Paths } from "./Paths";
-import { Rain, weatherLook } from "./Weather";
+import { Precipitation, climateLook, type Climate } from "./Weather";
 import { HtmlLayerContext } from "./SceneHtml";
 
 export interface IslandSceneProps {
   probs: readonly number[];
-  arms: readonly ArmStats[];
-  /** Current weather on the weather island (null on the classic island). */
-  weather: number | null;
+  /** What Pico believes about each chest right now. */
+  beliefs: readonly Belief[];
+  /** Weather / temperature effects (null on the classic island). */
+  climate: Climate | null;
   showTrueProbs: boolean;
   pending: { id: number; arm: number; mode: DecisionMode } | null;
   lastEvent: { id: number; arm: number; reward: 0 | 1; mode: DecisionMode } | null;
@@ -81,10 +82,10 @@ function ResponsiveCamera() {
 }
 
 function SceneContents(props: IslandSceneProps) {
-  const { arms, dark, pending, lastEvent, turnMs, weather } = props;
-  const total = arms.reduce((sum, a) => sum + a.pulls, 0);
-  const shares = arms.map((a) => (total > 0 ? a.pulls / total : 0));
-  const look = weatherLook(weather, dark);
+  const { beliefs, dark, pending, lastEvent, turnMs, climate } = props;
+  const total = beliefs.reduce((sum, b) => sum + b.pulls, 0);
+  const shares = beliefs.map((b) => (total > 0 ? b.pulls / total : 0));
+  const look = climateLook(climate, dark);
 
   return (
     <>
@@ -109,7 +110,7 @@ function SceneContents(props: IslandSceneProps) {
       />
 
       <SkyEnvironment dark={dark} cloudColor={look.cloud} />
-      <Rain active={weather === 1} />
+      <Precipitation kind={look.precipitation} />
       <Island dark={dark} />
       <Paths shares={shares} dark={dark} />
 
@@ -121,10 +122,11 @@ function SceneContents(props: IslandSceneProps) {
           color={chestColor(i, dark)}
           position={CHEST_POSITIONS[i]}
           rotationY={CHEST_ROTATIONS[i]}
-          pulls={arms[i].pulls}
-          successes={arms[i].successes}
+          pulls={beliefs[i].pulls}
+          successes={beliefs[i].successes}
+          estimate={beliefs[i].estimate}
           share={shares[i]}
-          uncertainty={uncertainty(arms[i])}
+          uncertainty={beliefs[i].uncertainty}
           trueProb={props.probs[i]}
           showTrueProb={props.showTrueProbs}
           isBest={props.estimatedBest === i}

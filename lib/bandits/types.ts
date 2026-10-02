@@ -1,5 +1,5 @@
 /** Identifier of each implemented bandit algorithm. */
-export type AlgorithmId = "random" | "epsilonGreedy" | "ucb1" | "thompson";
+export type AlgorithmId = "random" | "epsilonGreedy" | "ucb1" | "thompson" | "linucb";
 
 /** Everything an algorithm is allowed to know about one arm (treasure chest). */
 export interface ArmStats {
@@ -15,12 +15,29 @@ export interface Rng {
 export interface AlgorithmParams {
   /** Exploration probability for ε-Greedy (0–1). */
   epsilon: number;
+  /** Width of LinUCB's confidence bonus (α). */
+  alpha: number;
+}
+
+/**
+ * What a feature-based (contextual) algorithm sees. Tabular algorithms ignore it.
+ * Because every context has a fixed feature vector, LinUCB's sufficient statistics
+ * can be rebuilt from the per-context counts — no extra state is needed.
+ */
+export interface ContextualView {
+  /** Observations per context: armsByContext[context][arm]. */
+  armsByContext: readonly (readonly ArmStats[])[];
+  /** Feature vector of each context. */
+  features: readonly (readonly number[])[];
+  /** The context of this turn. */
+  context: number;
 }
 
 export interface SelectionContext {
   arms: readonly ArmStats[];
   rng: Rng;
   params: AlgorithmParams;
+  contextual: ContextualView;
 }
 
 /** Whether the choice was made to gather information or to cash in on knowledge. */
@@ -50,6 +67,20 @@ export type DecisionDetails =
       alphas: number[];
       betas: number[];
       samples: number[];
+    }
+  | {
+      kind: "linucb";
+      alpha: number;
+      /** The feature vector x of this turn. */
+      features: number[];
+      /** Predicted success probability θ̂ᵀx per arm. */
+      estimates: number[];
+      /** Uncertainty √(xᵀA⁻¹x) per arm. */
+      widths: number[];
+      /** estimate + α · width per arm. */
+      scores: number[];
+      /** Learned weights θ̂ per arm. */
+      thetas: number[][];
     };
 
 export interface Decision {
