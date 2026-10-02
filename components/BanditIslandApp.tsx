@@ -4,13 +4,16 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useBanditSimulation } from "@/hooks/useBanditSimulation";
 import { usePreferences } from "@/hooks/usePreferences";
+import { useQuests } from "@/hooks/useQuests";
 import type { AlgorithmId } from "@/lib/bandits/index.ts";
 import type { IslandMode } from "@/lib/island";
+import { QUESTS, type Quest, type QuestSnapshot } from "@/lib/quests";
 import { playMiss, playReward, unlockAudio } from "@/lib/sound";
 import { ChestLedger } from "./panels/ChestLedger";
 import { ComparePanel } from "./panels/ComparePanel";
 import { ControlDeck } from "./panels/ControlDeck";
 import { LearnSection } from "./panels/LearnSection";
+import { QuestBar, QuestClearModal, QuestMap } from "./panels/Quests";
 import { Logbook } from "./panels/Logbook";
 import { SpeechBubble } from "./panels/SpeechBubble";
 import { TemperatureMap } from "./panels/TemperatureMap";
@@ -53,6 +56,44 @@ export default function BanditIslandApp() {
   const env = sim.env;
   const island = useIslandView(state);
   const { estimatedBest, recentOptimalRate, references } = island;
+  const [battles, setBattles] = useState(0);
+
+  // What quests can observe about the current run.
+  const questSnapshot = useMemo<QuestSnapshot>(() => {
+    const { algorithms, aware } = sim.history;
+    const recent = algorithms.slice(-100);
+    const recentAwareList = aware.slice(-100);
+    const allSame = <T,>(list: T[]): T | null => (list.length > 0 && list.every((v) => v === list[0]) ? list[0] : null);
+    return {
+      mode: state.mode,
+      algorithm: state.algorithm,
+      epsilon: state.epsilon,
+      aware: state.contextAware,
+      turn: sim.turn,
+      cumulativeRegret: sim.cumulativeRegret,
+      randomRegretRate: references.randomRegretRate,
+      recentOptimalRate,
+      recentAlgorithm: allSame(recent),
+      recentAware: allSame(recentAwareList),
+      runAlgorithm: allSame(algorithms),
+      battles,
+    };
+  }, [state.mode, state.algorithm, state.epsilon, state.contextAware, sim, references, recentOptimalRate, battles]);
+
+  const onQuestClear = useCallback(() => {
+    if (prefs.sound) playReward(true);
+  }, [prefs.sound]);
+  const quests = useQuests(controller, questSnapshot, onQuestClear);
+  const startQuest = useCallback(
+    (quest: Quest) => {
+      unlockAudio();
+      quests.start(quest);
+      const target = quest.id === "first-battle" ? "battle" : "island";
+      document.getElementById(target)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    },
+    [quests],
+  );
+  const nextQuest = quests.justCleared ? (QUESTS[QUESTS.indexOf(quests.justCleared) + 1] ?? null) : null;
 
   // Sound effects (only while the animation is slow enough to follow).
   useEffect(() => {
@@ -150,6 +191,9 @@ export default function BanditIslandApp() {
           </p>
         </div>
         <nav className="flex items-center gap-3">
+          <a href="#quests" className="candy px-4 py-2 text-[13px]">
+            クエスト
+          </a>
           <a href="#learn" className="candy candy--sun px-4 py-2 text-[13px]">
             あそびかた
           </a>
@@ -170,12 +214,13 @@ export default function BanditIslandApp() {
       </header>
 
       <main id="island" className="scroll-mt-4">
+        <QuestBar quests={quests} snapshot={questSnapshot} />
         <div className="mb-4 sm:hidden">{modeTabs}</div>
         {/* The island: the hero of the page */}
         <div className="stage-frame p-2 sm:p-2.5">
           <div
             data-weather={island.stageTag}
-            className="stage relative h-[50vh] max-h-[720px] min-h-[380px] overflow-hidden rounded-[26px] sm:h-[calc(100svh-330px)] sm:min-h-[500px]">
+            className={`stage relative h-[50vh] max-h-[720px] min-h-[380px] overflow-hidden rounded-[26px] sm:min-h-[480px] ${quests.active ? "sm:h-[calc(100svh-400px)]" : "sm:h-[calc(100svh-330px)]"}`}>
             <IslandScene
               probs={env.probs[island.context]}
               beliefs={island.beliefs}
@@ -231,6 +276,10 @@ export default function BanditIslandApp() {
 
         <div className="relative z-10 mt-4 sm:-mt-7 sm:px-6">
           <ControlDeck controller={controller} onUserGesture={unlockAudio} />
+        </div>
+
+        <div className="mt-16 sm:mt-20">
+          <QuestMap quests={quests} onStart={startQuest} />
         </div>
 
         {island.curves && (
@@ -294,9 +343,25 @@ export default function BanditIslandApp() {
         </div>
 
         <div className="mt-24">
-          <ComparePanel key={state.mode} env={env} mode={state.mode} epsilon={state.epsilon} alpha={state.alpha} />
+          <ComparePanel
+            key={state.mode}
+            env={env}
+            mode={state.mode}
+            epsilon={state.epsilon}
+            alpha={state.alpha}
+            onBattle={() => setBattles((n) => n + 1)}
+          />
         </div>
       </main>
+
+      {quests.justCleared && (
+        <QuestClearModal
+          quest={quests.justCleared}
+          next={nextQuest}
+          onNext={() => nextQuest && startQuest(nextQuest)}
+          onClose={quests.dismissCleared}
+        />
+      )}
 
       <footer className="on-bg-text mt-24 flex flex-wrap items-center justify-between gap-4 text-[13px] font-extrabold">
         <p>

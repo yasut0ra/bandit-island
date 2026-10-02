@@ -100,7 +100,8 @@ type Action =
   | { type: "setEpsilon"; epsilon: number }
   | { type: "setAlpha"; alpha: number }
   | { type: "setMode"; mode: IslandMode; seed: number }
-  | { type: "setContextAware"; aware: boolean };
+  | { type: "setContextAware"; aware: boolean }
+  | { type: "announce"; text: string };
 
 type Settings = Pick<BanditState, "mode" | "algorithm" | "epsilon" | "alpha" | "contextAware">;
 
@@ -255,6 +256,9 @@ function reducer(state: BanditState, action: Action): BanditState {
       );
     }
 
+    case "announce":
+      return { ...state, nextId: state.nextId + 1, notice: { id: state.nextId, text: action.text } };
+
     case "setContextAware": {
       if (action.aware === state.contextAware) return state;
       return {
@@ -371,6 +375,8 @@ export function useBanditSimulation() {
     }, []),
     setAlpha: useCallback((alpha: number) => dispatch({ type: "setAlpha", alpha }), []),
     setContextAware: useCallback((aware: boolean) => dispatch({ type: "setContextAware", aware }), []),
+    /** Shows a line in Pico's speech bubble (e.g. a quest briefing). */
+    announce: useCallback((text: string) => dispatch({ type: "announce", text }), []),
   };
 }
 

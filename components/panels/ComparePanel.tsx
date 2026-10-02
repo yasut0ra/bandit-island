@@ -98,7 +98,19 @@ function Fighter({
 }
 
 /** Compare Mode: headless Monte-Carlo runs of two algorithms on the current island. */
-export function ComparePanel({ env, mode, epsilon, alpha }: { env: BanditEnvironment; mode: IslandMode; epsilon: number; alpha: number }) {
+export function ComparePanel({
+  env,
+  mode,
+  epsilon,
+  alpha,
+  onBattle,
+}: {
+  env: BanditEnvironment;
+  mode: IslandMode;
+  epsilon: number;
+  alpha: number;
+  onBattle?: () => void;
+}) {
   const weather = mode !== "classic";
   // Natural duels: weather island → same explorer with vs without the weather;
   // temperature island → bucketing (Thompson) vs learning a line (LinUCB).
@@ -126,6 +138,7 @@ export function ComparePanel({ env, mode, epsilon, alpha }: { env: BanditEnviron
         ],
       });
       setRunning(false);
+      onBattle?.();
     }, 30);
   };
 
@@ -141,7 +154,7 @@ export function ComparePanel({ env, mode, epsilon, alpha }: { env: BanditEnviron
       : null;
 
   return (
-    <section>
+    <section id="battle" className="scroll-mt-6">
       <Ribbon
         color="var(--pink)"
         sub={
