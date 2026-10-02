@@ -1,8 +1,14 @@
 /** Tiny WebAudio synth for reward / miss jingles (no audio files needed). */
 let context: AudioContext | null = null;
 
-function getContext(): AudioContext | null {
+/**
+ * Creates / resumes the AudioContext. Browsers only allow this inside a user
+ * gesture, so it is called from click and key handlers only (see unlockAudio).
+ */
+function ensureContext(): AudioContext | null {
   if (typeof window === "undefined") return null;
+  // Outside a real gesture the browser would refuse (and warn), so don't even try.
+  if (navigator.userActivation && !navigator.userActivation.isActive) return context;
   try {
     context ??= new AudioContext();
     if (context.state === "suspended") void context.resume();
@@ -12,9 +18,14 @@ function getContext(): AudioContext | null {
   }
 }
 
+/** The context, if the user has already unlocked audio; playback before that is silently skipped. */
+function getContext(): AudioContext | null {
+  return context && context.state === "running" ? context : null;
+}
+
 /** Call from a user gesture so browsers allow audio later. */
 export function unlockAudio() {
-  getContext();
+  ensureContext();
 }
 
 function tone(ctx: AudioContext, freq: number, start: number, duration: number, type: OscillatorType, volume: number) {

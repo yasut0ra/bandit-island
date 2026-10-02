@@ -104,7 +104,12 @@ type Action =
 
 type Settings = Pick<BanditState, "mode" | "algorithm" | "epsilon" | "alpha" | "contextAware">;
 
-function initialState(env: BanditEnvironment, seed: number, settings: Settings): BanditState {
+/**
+ * `nextId` carries over from the previous state: event ids key the 3D effects and
+ * speech-bubble animations, so they must stay unique across resets and island changes
+ * (effects from the old run can still be on screen when the new run starts).
+ */
+function initialState(env: BanditEnvironment, seed: number, settings: Settings, nextId = 1): BanditState {
   const rng = new SeededRng(seed);
   const sim = createSimulation(env, drawContext(env, rng));
   return {
@@ -114,8 +119,14 @@ function initialState(env: BanditEnvironment, seed: number, settings: Settings):
     pending: null,
     lastEvent: null,
     notice: null,
-    nextId: 1,
+    nextId,
   };
+}
+
+/** A fresh run that announces itself in the speech bubble. */
+function freshRun(env: BanditEnvironment, seed: number, settings: Settings, nextId: number, text?: string): BanditState {
+  const next = initialState(env, seed, settings, nextId + 1);
+  return text ? { ...next, notice: { id: nextId, text } } : next;
 }
 
 const settingsOf = (s: BanditState): Settings => ({
@@ -218,31 +229,30 @@ function reducer(state: BanditState, action: Action): BanditState {
     }
 
     case "reset":
-      return initialState(state.sim.env, action.seed, settingsOf(state));
+      return freshRun(state.sim.env, action.seed, settingsOf(state), state.nextId);
 
-    case "newIsland": {
-      const next = initialState(islandEnv(state.mode, action.seed), action.seed, settingsOf(state));
-      return {
-        ...next,
-        notice: { id: 0, text: "新しい島に到着。宝箱の当たりやすさが入れ替わりました。" },
-      };
-    }
+    case "newIsland":
+      return freshRun(
+        islandEnv(state.mode, action.seed),
+        action.seed,
+        settingsOf(state),
+        state.nextId,
+        "新しい島に到着。宝箱の当たりやすさが入れ替わりました。",
+      );
 
     case "setMode": {
       if (action.mode === state.mode) return state;
-      const next = initialState(islandEnv(action.mode), action.seed, { ...settingsOf(state), mode: action.mode });
-      return {
-        ...next,
-        notice: {
-          id: 0,
-          text:
-            action.mode === "weather"
-              ? "天気の島へようこそ！ ここでは天気によって当たりやすい宝箱が変わるよ。"
-              : action.mode === "temperature"
-                ? "気温の島へようこそ！ 気温が上がったり下がったりすると、当たりやすい宝箱が少しずつ変わるよ。"
-                : "ふつうの島に戻ってきました。",
-        },
-      };
+      return freshRun(
+        islandEnv(action.mode),
+        action.seed,
+        { ...settingsOf(state), mode: action.mode },
+        state.nextId,
+        action.mode === "weather"
+          ? "天気の島へようこそ！ ここでは天気によって当たりやすい宝箱が変わるよ。"
+          : action.mode === "temperature"
+            ? "気温の島へようこそ！ 気温が上がったり下がったりすると、当たりやすい宝箱が少しずつ変わるよ。"
+            : "ふつうの島に戻ってきました。",
+      );
     }
 
     case "setContextAware": {
